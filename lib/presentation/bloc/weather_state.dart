@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:weather_app/domain/entities/weather.dart';
 
 abstract class WeatherState extends Equatable {
   const WeatherState();
@@ -16,11 +17,11 @@ class WeatherLoadInProgress extends WeatherState {}
 // Trạng thái tải dữ liệu thành công
 // Tạm thời chưa có data, sẽ thêm sau khi có Model
 class WeatherLoadSuccess extends WeatherState {
-  // const WeatherLoadSuccess(this.weather);
-  // final Weather weather; // Sẽ thêm model Weather ở đây sau
+  const WeatherLoadSuccess(this.weatherData); // Nhận WeatherData qua constructor
+  final WeatherData weatherData; // Thêm trường để giữ dữ liệu
 
-  // @override
-  // List<Object> get props => [weather];
+  @override
+  List<Object> get props => [weatherData]; // Thêm vào props để Equatable so sánh
 }
 
 // Trạng thái tải dữ liệu thất bại
