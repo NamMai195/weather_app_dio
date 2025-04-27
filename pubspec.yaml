@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_bloc: ^8.1.5 # Kiểm tra phiên bản mới nhất trên pub.dev nếu muốn
   equatable: ^2.0.5   # Dùng để so sánh state và event hiệu quả
+  dio: ^5.4.3+1 # Thêm dòng này - Kiểm tra phiên bản mới nhất trên pub.dev
 dev_dependencies:
   flutter_test:
     sdk: flutter
