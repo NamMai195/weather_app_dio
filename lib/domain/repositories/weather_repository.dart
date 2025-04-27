@@ -9,6 +9,6 @@ abstract class WeatherRepository {
   /// Ném ra [Exception] nếu có lỗi xảy ra.
   Future<WeatherData> getWeatherByCity(String city);
 
-// Có thể thêm các phương thức khác ở đây sau nếu cần
-// Ví dụ: Future<ForecastData> getForecastByCity(String city);
+  // Có thể thêm các phương thức khác ở đây sau nếu cần
+  // Ví dụ: Future<ForecastData> getForecastByCity(String city);
 }

@@ -6,8 +6,6 @@ import 'package:weather_app/domain/repositories/weather_repository.dart';
 import 'package:weather_app/presentation/bloc/weather_event.dart';
 import 'package:weather_app/presentation/bloc/weather_state.dart'; // Import Equatable
 
-
-
 class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
   final WeatherRepository weatherRepository;
 
@@ -17,19 +15,20 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
 
   // Hàm xử lý sự kiện WeatherRequested
   Future<void> _onWeatherRequested(
-      WeatherRequested event,
-      Emitter<WeatherState> emit,
-      ) async {
+    WeatherRequested event,
+    Emitter<WeatherState> emit,
+  ) async {
     final String city = event.city;
     emit(WeatherLoadInProgress()); // Bắt đầu trạng thái loading
 
     try {
       // Gọi repository thật sự để lấy dữ liệu
-      final WeatherData weatherData = await weatherRepository.getWeatherByCity(city);
+      final WeatherData weatherData = await weatherRepository.getWeatherByCity(
+        city,
+      );
 
       // Thành công -> Phát ra state Success kèm dữ liệu nhận được
       emit(WeatherLoadSuccess(weatherData));
-
     } catch (e) {
       // Thất bại -> Phát ra state Failure kèm thông báo lỗi
       // Lỗi này được ném ra từ RepositoryImpl hoặc DataSourceImpl

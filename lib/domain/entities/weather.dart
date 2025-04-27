@@ -4,7 +4,8 @@
 
 import 'dart:convert';
 
-WeatherData weatherDataFromJson(String str) => WeatherData.fromJson(json.decode(str));
+WeatherData weatherDataFromJson(String str) =>
+    WeatherData.fromJson(json.decode(str));
 
 String weatherDataToJson(WeatherData data) => json.encode(data.toJson());
 
@@ -41,7 +42,9 @@ class WeatherData {
 
   factory WeatherData.fromJson(Map<String, dynamic> json) => WeatherData(
     coord: Coord.fromJson(json["coord"]),
-    weather: List<Weather>.from(json["weather"].map((x) => Weather.fromJson(x))),
+    weather: List<Weather>.from(
+      json["weather"].map((x) => Weather.fromJson(x)),
+    ),
     base: json["base"],
     main: Main.fromJson(json["main"]),
     visibility: json["visibility"],
@@ -75,37 +78,24 @@ class WeatherData {
 class Clouds {
   int all;
 
-  Clouds({
-    required this.all,
-  });
+  Clouds({required this.all});
 
-  factory Clouds.fromJson(Map<String, dynamic> json) => Clouds(
-    all: json["all"],
-  );
+  factory Clouds.fromJson(Map<String, dynamic> json) =>
+      Clouds(all: json["all"]);
 
-  Map<String, dynamic> toJson() => {
-    "all": all,
-  };
+  Map<String, dynamic> toJson() => {"all": all};
 }
 
 class Coord {
   double lon;
   double lat;
 
-  Coord({
-    required this.lon,
-    required this.lat,
-  });
+  Coord({required this.lon, required this.lat});
 
-  factory Coord.fromJson(Map<String, dynamic> json) => Coord(
-    lon: json["lon"]?.toDouble(),
-    lat: json["lat"]?.toDouble(),
-  );
+  factory Coord.fromJson(Map<String, dynamic> json) =>
+      Coord(lon: json["lon"]?.toDouble(), lat: json["lat"]?.toDouble());
 
-  Map<String, dynamic> toJson() => {
-    "lon": lon,
-    "lat": lat,
-  };
+  Map<String, dynamic> toJson() => {"lon": lon, "lat": lat};
 }
 
 class Main {
@@ -216,18 +206,10 @@ class Wind {
   double speed;
   int deg;
 
-  Wind({
-    required this.speed,
-    required this.deg,
-  });
+  Wind({required this.speed, required this.deg});
 
-  factory Wind.fromJson(Map<String, dynamic> json) => Wind(
-    speed: json["speed"]?.toDouble(),
-    deg: json["deg"],
-  );
+  factory Wind.fromJson(Map<String, dynamic> json) =>
+      Wind(speed: json["speed"]?.toDouble(), deg: json["deg"]);
 
-  Map<String, dynamic> toJson() => {
-    "speed": speed,
-    "deg": deg,
-  };
+  Map<String, dynamic> toJson() => {"speed": speed, "deg": deg};
 }

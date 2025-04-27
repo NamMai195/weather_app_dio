@@ -1,7 +1,7 @@
 // lib/data/datasources/weather_remote_datasource.dart
 
 import 'package:dio/dio.dart'; // Import thư viện Dio
-import '../../config.dart';    // Import file config chứa API key
+import '../../config.dart'; // Import file config chứa API key
 
 // Định nghĩa lớp trừu tượng (tùy chọn, nhưng tốt cho việc testing/dependency inversion)
 abstract class WeatherRemoteDataSource {
@@ -12,7 +12,8 @@ abstract class WeatherRemoteDataSource {
 class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
   final Dio dio; // Inject Dio instance
   final String apiKey = openWeatherApiKey; // Lấy API key từ config
-  final String baseUrl = 'https://api.openweathermap.org/data/2.5'; // Base URL của API
+  final String baseUrl =
+      'https://api.openweathermap.org/data/2.5'; // Base URL của API
 
   WeatherRemoteDataSourceImpl({required this.dio}); // Constructor nhận Dio
 
@@ -34,10 +35,7 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
 
     try {
       // Thực hiện GET request bằng Dio
-      final response = await dio.get(
-        url,
-        queryParameters: queryParameters,
-      );
+      final response = await dio.get(url, queryParameters: queryParameters);
 
       // Kiểm tra status code thành công (200 OK)
       if (response.statusCode == 200) {

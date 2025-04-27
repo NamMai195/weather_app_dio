@@ -17,7 +17,9 @@ class WeatherLoadInProgress extends WeatherState {}
 // Trạng thái tải dữ liệu thành công
 // Tạm thời chưa có data, sẽ thêm sau khi có Model
 class WeatherLoadSuccess extends WeatherState {
-  const WeatherLoadSuccess(this.weatherData); // Nhận WeatherData qua constructor
+  const WeatherLoadSuccess(
+    this.weatherData,
+  ); // Nhận WeatherData qua constructor
   final WeatherData weatherData; // Thêm trường để giữ dữ liệu
 
   @override
