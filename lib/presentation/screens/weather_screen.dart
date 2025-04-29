@@ -1,12 +1,11 @@
-// lib/presentation/screens/weather_screen.dart
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // Import Bloc library
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weather_app/data/datasources/weather_remote_datasource.dart';
 import 'package:weather_app/data/repositories/weather_repository_impl.dart';
 import 'package:weather_app/presentation/bloc/weather_event.dart';
 import 'package:weather_app/presentation/bloc/weather_state.dart';
-import '../bloc/weather_bloc.dart'; // Import BLoC vừa tạo
+import '../bloc/weather_bloc.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
@@ -20,29 +19,24 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Cung cấp WeatherBloc cho cây widget con của màn hình này
     return BlocProvider(
       create:
           (context) => WeatherBloc(
-            // Tạo và inject các dependencies cần thiết
             weatherRepository: WeatherRepositoryImpl(
               remoteDataSource: WeatherRemoteDataSourceImpl(
-                dio: Dio(), // Tạo instance Dio mới ở đây
+                dio: Dio(),
               ),
             ),
           ),
       child: Scaffold(
         appBar: AppBar(title: const Text('Weather App')),
-        // Sử dụng BlocBuilder để lắng nghe và rebuild UI theo trạng thái BLoC
         body: BlocBuilder<WeatherBloc, WeatherState>(
           builder: (context, state) {
-            // Phần UI chung không thay đổi nhiều theo state (ví dụ: Padding)
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  // --- Phần Input luôn hiển thị (có thể disable khi loading) ---
                   TextField(
                     controller: _cityController,
                     decoration: const InputDecoration(
@@ -50,20 +44,17 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       hintText: 'Ví dụ: Hanoi',
                       border: OutlineInputBorder(),
                     ),
-                    // Vô hiệu hóa ô nhập khi đang tải
                     enabled: state is! WeatherLoadInProgress,
                   ),
                   const SizedBox(height: 20),
 
-                  // Nút bấm để gửi sự kiện
                   ElevatedButton(
                     onPressed:
                         (state is WeatherLoadInProgress)
-                            ? null // Vô hiệu hóa nút khi đang tải
+                            ? null
                             : () {
                               final cityName = _cityController.text;
                               if (cityName.isNotEmpty) {
-                                // Gửi sự kiện WeatherRequested đến BLoC
                                 context.read<WeatherBloc>().add(
                                   WeatherRequested(cityName),
                                 );
@@ -73,7 +64,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // --- Phần hiển thị kết quả thay đổi theo State ---
                   _buildWeatherContent(context, state),
                 ],
               ),
@@ -84,8 +74,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
-  // Hàm helper để xây dựng phần nội dung dựa trên state
-  // Hàm helper để xây dựng phần nội dung dựa trên state
   Widget _buildWeatherContent(BuildContext context, WeatherState state) {
     if (state is WeatherInitial) {
       return const Center(
@@ -98,10 +86,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     } else if (state is WeatherLoadInProgress) {
       return const Center(child: CircularProgressIndicator());
     } else if (state is WeatherLoadSuccess) {
-      // ---- PHẦN CẬP NHẬT ĐỂ HIỂN THỊ DATA ----
-      // Lấy dữ liệu từ state
       final weatherData = state.weatherData;
-      // Lấy thông tin icon (weather là list, thường chỉ cần phần tử đầu tiên)
       final weatherInfo =
           weatherData.weather.isNotEmpty ? weatherData.weather[0] : null;
       final iconCode = weatherInfo?.icon;
@@ -111,33 +96,29 @@ class _WeatherScreenState extends State<WeatherScreen> {
               : null;
 
       return SingleChildScrollView(
-        // Dùng SingleChildScrollView nếu nội dung có thể dài
         child: Column(
           mainAxisAlignment:
-              MainAxisAlignment.center, // Căn giữa theo chiều dọc
+              MainAxisAlignment.center,
           crossAxisAlignment:
-              CrossAxisAlignment.center, // Căn giữa theo chiều ngang
+              CrossAxisAlignment.center,
           children: [
             Text(
-              weatherData.name, // Tên thành phố
+              weatherData.name,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
 
             if (iconUrl != null)
               Image.network(
-                // Hiển thị icon thời tiết từ URL
                 iconUrl,
                 width: 100,
                 height: 100,
                 errorBuilder: (context, error, stackTrace) {
-                  // Hiển thị placeholder hoặc thông báo lỗi nếu không tải được ảnh
                   return const Icon(Icons.error_outline, size: 50);
                 },
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   return const SizedBox(
-                    // Placeholder khi đang tải ảnh
                     width: 100,
                     height: 100,
                     child: Center(child: CircularProgressIndicator()),
@@ -147,7 +128,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
             if (weatherInfo != null)
               Text(
-                weatherInfo.description, // Mô tả thời tiết
+                weatherInfo.description,
                 style: const TextStyle(
                   fontSize: 18,
                   fontStyle: FontStyle.italic,
@@ -162,9 +143,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
             const SizedBox(height: 20),
 
             Row(
-              // Hiển thị độ ẩm và tốc độ gió trên cùng một hàng
               mainAxisAlignment:
-                  MainAxisAlignment.spaceEvenly, // Căn đều khoảng cách
+                  MainAxisAlignment.spaceEvenly,
               children: [
                 Column(
                   children: [
@@ -195,7 +175,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
           ],
         ),
       );
-      // ---- KẾT THÚC PHẦN CẬP NHẬT ----
     } else if (state is WeatherLoadFailure) {
       return Center(
         child: Text(
@@ -212,7 +191,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
   @override
   void dispose() {
     _cityController.dispose();
-    // BlocProvider tự động dispose BLoC
     super.dispose();
   }
 }

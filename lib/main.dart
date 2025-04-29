@@ -1,6 +1,4 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
-// Import màn hình WeatherScreen từ vị trí mới trong presentation layer
 import 'presentation/screens/weather_screen.dart';
 
 void main() {
@@ -18,7 +16,6 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      // Sử dụng WeatherScreen làm màn hình chính
       home: const WeatherScreen(),
     );
   }

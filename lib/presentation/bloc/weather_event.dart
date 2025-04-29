@@ -7,7 +7,6 @@ abstract class WeatherEvent extends Equatable {
   List<Object> get props => [];
 }
 
-// Sự kiện yêu cầu lấy thông tin thời tiết cho một thành phố
 class WeatherRequested extends WeatherEvent {
   const WeatherRequested(this.city);
   final String city; // Tên thành phố cần tìm
@@ -16,4 +15,3 @@ class WeatherRequested extends WeatherEvent {
   List<Object> get props => [city];
 }
 
-// Có thể thêm các event khác sau này nếu cần (ví dụ: RefreshWeather)
