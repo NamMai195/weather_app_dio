@@ -1,6 +1,5 @@
-// To parse this JSON data, do
-//
-//     final weatherData = weatherDataFromJson(jsonString);
+// lib/domain/entities/weather.dart
+// Đã cập nhật để xử lý null trong fromJson
 
 import 'dart:convert';
 
@@ -40,22 +39,25 @@ class WeatherData {
     required this.cod,
   });
 
+  // Đã cập nhật các trường int với ?? 0
   factory WeatherData.fromJson(Map<String, dynamic> json) => WeatherData(
     coord: Coord.fromJson(json["coord"]),
     weather: List<Weather>.from(
-      json["weather"].map((x) => Weather.fromJson(x)),
+      // Nên kiểm tra json["weather"] có null không trước khi map
+      (json["weather"] as List<dynamic>? ?? [])
+          .map((x) => Weather.fromJson(x)),
     ),
-    base: json["base"],
+    base: json["base"] ?? '', // Thêm default cho String nếu cần
     main: Main.fromJson(json["main"]),
-    visibility: json["visibility"],
+    visibility: json["visibility"] ?? 0, // Sửa ở đây
     wind: Wind.fromJson(json["wind"]),
     clouds: Clouds.fromJson(json["clouds"]),
-    dt: json["dt"],
+    dt: json["dt"] ?? 0, // Sửa ở đây
     sys: Sys.fromJson(json["sys"]),
-    timezone: json["timezone"],
-    id: json["id"],
-    name: json["name"],
-    cod: json["cod"],
+    timezone: json["timezone"] ?? 0, // Sửa ở đây
+    id: json["id"] ?? 0, // Sửa ở đây
+    name: json["name"] ?? 'N/A', // Thêm default cho String nếu cần
+    cod: json["cod"] ?? 0, // Sửa ở đây
   );
 
   Map<String, dynamic> toJson() => {
@@ -80,8 +82,10 @@ class Clouds {
 
   Clouds({required this.all});
 
-  factory Clouds.fromJson(Map<String, dynamic> json) =>
-      Clouds(all: json["all"]);
+  // Đã cập nhật với ?? 0
+  factory Clouds.fromJson(Map<String, dynamic> json) => Clouds(
+    all: json["all"] ?? 0, // Sửa ở đây
+  );
 
   Map<String, dynamic> toJson() => {"all": all};
 }
@@ -92,8 +96,11 @@ class Coord {
 
   Coord({required this.lon, required this.lat});
 
-  factory Coord.fromJson(Map<String, dynamic> json) =>
-      Coord(lon: json["lon"]?.toDouble(), lat: json["lat"]?.toDouble());
+  // Đã cập nhật với ?? 0.0
+  factory Coord.fromJson(Map<String, dynamic> json) => Coord(
+    lon: json["lon"]?.toDouble() ?? 0.0, // Sửa ở đây
+    lat: json["lat"]?.toDouble() ?? 0.0, // Sửa ở đây
+  );
 
   Map<String, dynamic> toJson() => {"lon": lon, "lat": lat};
 }
@@ -105,8 +112,8 @@ class Main {
   double tempMax;
   int pressure;
   int humidity;
-  int seaLevel;
-  int grndLevel;
+  int? seaLevel; // Thay đổi thành nullable nếu 0 không hợp lý làm default
+  int? grndLevel; // Thay đổi thành nullable nếu 0 không hợp lý làm default
 
   Main({
     required this.temp,
@@ -115,19 +122,20 @@ class Main {
     required this.tempMax,
     required this.pressure,
     required this.humidity,
-    required this.seaLevel,
-    required this.grndLevel,
+    this.seaLevel, // Cập nhật constructor
+    this.grndLevel, // Cập nhật constructor
   });
 
+  // Đã cập nhật các trường int/double với ??
   factory Main.fromJson(Map<String, dynamic> json) => Main(
-    temp: json["temp"]?.toDouble(),
-    feelsLike: json["feels_like"]?.toDouble(),
-    tempMin: json["temp_min"]?.toDouble(),
-    tempMax: json["temp_max"]?.toDouble(),
-    pressure: json["pressure"],
-    humidity: json["humidity"],
-    seaLevel: json["sea_level"],
-    grndLevel: json["grnd_level"],
+    temp: json["temp"]?.toDouble() ?? 0.0, // Sửa ở đây
+    feelsLike: json["feels_like"]?.toDouble() ?? 0.0, // Sửa ở đây
+    tempMin: json["temp_min"]?.toDouble() ?? 0.0, // Sửa ở đây
+    tempMax: json["temp_max"]?.toDouble() ?? 0.0, // Sửa ở đây
+    pressure: json["pressure"] ?? 0, // Sửa ở đây
+    humidity: json["humidity"] ?? 0, // Sửa ở đây
+    seaLevel: json["sea_level"], // Giữ nguyên, vì đã là int?
+    grndLevel: json["grnd_level"], // Giữ nguyên, vì đã là int?
   );
 
   Map<String, dynamic> toJson() => {
@@ -143,26 +151,27 @@ class Main {
 }
 
 class Sys {
-  int type;
-  int id;
-  String country;
-  int sunrise;
-  int sunset;
+  int? type; // Có thể null
+  int? id; // Có thể null
+  String? country; // Có thể null
+  int? sunrise; // Có thể null
+  int? sunset; // Có thể null
 
   Sys({
-    required this.type,
-    required this.id,
-    required this.country,
-    required this.sunrise,
-    required this.sunset,
+    this.type,
+    this.id,
+    this.country,
+    this.sunrise,
+    this.sunset,
   });
 
+  // Đã cập nhật các trường int với ?? 0 (hoặc giữ null nếu trường là nullable)
   factory Sys.fromJson(Map<String, dynamic> json) => Sys(
-    type: json["type"],
-    id: json["id"],
-    country: json["country"],
-    sunrise: json["sunrise"],
-    sunset: json["sunset"],
+    type: json["type"],         // Giữ null nếu cần
+    id: json["id"],             // Giữ null nếu cần
+    country: json["country"],   // Giữ null nếu cần
+    sunrise: json["sunrise"], // Giữ null nếu cần
+    sunset: json["sunset"],   // Giữ null nếu cần
   );
 
   Map<String, dynamic> toJson() => {
@@ -187,11 +196,12 @@ class Weather {
     required this.icon,
   });
 
+  // Đã cập nhật các trường int với ?? 0
   factory Weather.fromJson(Map<String, dynamic> json) => Weather(
-    id: json["id"],
-    main: json["main"],
-    description: json["description"],
-    icon: json["icon"],
+    id: json["id"] ?? 0, // Sửa ở đây
+    main: json["main"] ?? '', // Thêm default cho String nếu cần
+    description: json["description"] ?? '', // Thêm default cho String nếu cần
+    icon: json["icon"] ?? '', // Thêm default cho String nếu cần
   );
 
   Map<String, dynamic> toJson() => {
@@ -208,8 +218,11 @@ class Wind {
 
   Wind({required this.speed, required this.deg});
 
-  factory Wind.fromJson(Map<String, dynamic> json) =>
-      Wind(speed: json["speed"]?.toDouble(), deg: json["deg"]);
+  // Đã cập nhật các trường int/double với ??
+  factory Wind.fromJson(Map<String, dynamic> json) => Wind(
+    speed: json["speed"]?.toDouble() ?? 0.0, // Sửa ở đây
+    deg: json["deg"] ?? 0, // Sửa ở đây
+  );
 
   Map<String, dynamic> toJson() => {"speed": speed, "deg": deg};
 }

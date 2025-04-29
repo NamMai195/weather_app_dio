@@ -29,7 +29,7 @@ Một ứng dụng Flutter đơn giản để hiển thị thông tin thời ti�
 
 * Đã cài đặt [Flutter SDK](https://docs.flutter.dev/get-started/install).
 
-### Cài đặt
+### Cài đặt         
 
 1.  **Clone repository:**
     ```bash
@@ -51,7 +51,7 @@ Một ứng dụng Flutter đơn giản để hiển thị thông tin thời ti�
     ```bash
     flutter pub get
     ```
-
+f
 4.  **Chạy ứng dụng:**
     ```bash
     flutter run
