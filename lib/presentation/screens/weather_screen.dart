@@ -7,6 +7,7 @@ import 'package:weather_app/presentation/bloc/weather_event.dart';
 import 'package:weather_app/presentation/bloc/weather_state.dart';
 import '../bloc/weather_bloc.dart';
 
+const List<String> _cities = ['Hanoi', 'Ho Chi Minh City', 'Da Nang', 'London', 'Tokyo'];
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
 
@@ -37,15 +38,43 @@ class _WeatherScreenState extends State<WeatherScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  TextField(
-                    controller: _cityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nhập tên thành phố',
-                      hintText: 'Ví dụ: Hanoi',
-                      border: OutlineInputBorder(),
-                    ),
-                    enabled: state is! WeatherLoadInProgress,
+                  Autocomplete<String>(
+                    optionsBuilder: (TextEditingValue textEidtingValue){
+                      if(textEidtingValue.text == ''){
+                        return const Iterable<String>.empty();
+                      }
+                      return _cities.where((String option){
+                        return option.toLowerCase().contains(textEidtingValue.text.toLowerCase());
+                      });
+                    },
+                    onSelected: (String selection) {
+                      debugPrint('You just selected $selection');
+                      _cityController.text=selection;
+                      FocusScope.of(context).unfocus();
+                    },
+                    fieldViewBuilder: (BuildContext context, TextEditingController fieldTextEditingController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
+                      return TextField(
+                        controller: fieldTextEditingController,
+                        focusNode: fieldFocusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Nhập tên thành phố',
+                          hintText: 'Ví dụ: Hanoi',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (String text){
+                          _cityController.text=text;
+                        },
+                        enabled: state is! WeatherLoadInProgress,
+                        onSubmitted: (_) {
+                          final cityName = _cityController.text.trim();
+                          if(cityName.isNotEmpty && state is! WeatherLoadInProgress) {
+                            context.read<WeatherBloc>().add(WeatherRequested(cityName));
+                          }
+                        },
+                      );
+                    },
                   ),
+
                   const SizedBox(height: 20),
 
                   ElevatedButton(
@@ -53,7 +82,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         (state is WeatherLoadInProgress)
                             ? null
                             : () {
-                              final cityName = _cityController.text;
+                              final cityName = _cityController.text.trim();
                               if (cityName.isNotEmpty) {
                                 context.read<WeatherBloc>().add(
                                   WeatherRequested(cityName),
@@ -137,7 +166,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
             const SizedBox(height: 20),
 
             Text(
-              '${weatherData.main.temp.toStringAsFixed(1)}°C', // Nhiệt độ (làm tròn 1 chữ số thập phân)
+              '${weatherData.main.temp.toStringAsFixed(1)}°C',
               style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
