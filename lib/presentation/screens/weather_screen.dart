@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:weather_app/data/datasources/impl/weather_remote_datasource_impl.dart';
+import 'package:weather_app/locator.dart';
 
 import '../bloc/weather_bloc.dart';
 import '../bloc/weather_event.dart';
@@ -27,13 +29,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => WeatherBloc(
-        weatherRepository: WeatherRepositoryImpl(
-          remoteDataSource: WeatherRemoteDataSourceImpl(
-            dio: Dio(), // Khởi tạo DI đơn giản ở đây
-          ),
-        ),
-      ),
+      create: (context) => locator<WeatherBloc>(),
       child: Scaffold(
         appBar: AppBar(title: const Text('Weather App')),
         body: BlocBuilder<WeatherBloc, WeatherState>(
@@ -54,8 +50,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       }
 
                       // TODO: Refactor using proper Dependency Injection (e.g., get_it) later.
-                      final WeatherRepository repository = WeatherRepositoryImpl(
-                          remoteDataSource: WeatherRemoteDataSourceImpl(dio: Dio()));
+                      final WeatherRepository repository =locator<WeatherRepository>();
 
                       // TODO: Implement debouncing to avoid excessive API calls.
                       final suggestions = await repository.getCitySuggestions(query);
@@ -79,11 +74,9 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         ),
                         enabled: !isLoading,
                         onChanged: (String text) {
-                          // Đồng bộ với controller chính khi người dùng tự gõ
                           _cityController.text = text;
                         },
                         onSubmitted: (_) {
-                          // Đảm bảo controller chính được cập nhật và gửi event
                           _cityController.text = fieldTextEditingController.text;
                           final cityName = _cityController.text.trim();
                           if (cityName.isNotEmpty && !isLoading) {
@@ -113,7 +106,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                   },
                                   child: Padding(
                                     padding: const EdgeInsets.all(16.0),
-                                    child: Text(option.displayName), // Hiển thị tên đầy đủ hơn
+                                    child: Text(option.displayName),
                                   ),
                                 );
                               },
@@ -260,7 +253,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   @override
   void dispose() {
-    _cityController.dispose(); // Nhớ dispose controller
+    _cityController.dispose();
     super.dispose();
   }
 }

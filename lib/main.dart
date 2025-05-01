@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:weather_app/locator.dart';
 import 'presentation/screens/weather_screen.dart';
 
 void main() {
+
+  setupLocator();
+
   runApp(const MyApp());
 }
 
