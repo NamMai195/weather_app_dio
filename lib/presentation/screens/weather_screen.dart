@@ -1,13 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:weather_app/data/datasources/weather_remote_datasource.dart';
-import 'package:weather_app/data/repositories/weather_repository_impl.dart';
-import 'package:weather_app/presentation/bloc/weather_event.dart';
-import 'package:weather_app/presentation/bloc/weather_state.dart';
-import '../bloc/weather_bloc.dart';
 
-const List<String> _cities = ['Hanoi', 'Ho Chi Minh City', 'Da Nang', 'London', 'Tokyo'];
+import '../bloc/weather_bloc.dart';
+import '../bloc/weather_event.dart';
+import '../bloc/weather_state.dart';
+
+import '../../domain/entities/location_suggestion.dart';
+import '../../domain/repositories/weather_repository.dart';
+
+import '../../data/datasources/weather_remote_datasource.dart';
+import '../../data/repositories/weather_repository_impl.dart';
+
+
+
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
 
@@ -21,78 +27,118 @@ class _WeatherScreenState extends State<WeatherScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create:
-          (context) => WeatherBloc(
-            weatherRepository: WeatherRepositoryImpl(
-              remoteDataSource: WeatherRemoteDataSourceImpl(
-                dio: Dio(),
-              ),
-            ),
+      create: (context) => WeatherBloc(
+        weatherRepository: WeatherRepositoryImpl(
+          remoteDataSource: WeatherRemoteDataSourceImpl(
+            dio: Dio(), // Khởi tạo DI đơn giản ở đây
           ),
+        ),
+      ),
       child: Scaffold(
         appBar: AppBar(title: const Text('Weather App')),
         body: BlocBuilder<WeatherBloc, WeatherState>(
           builder: (context, state) {
+            bool isLoading = state is WeatherLoadInProgress;
+
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  Autocomplete<String>(
-                    optionsBuilder: (TextEditingValue textEidtingValue){
-                      if(textEidtingValue.text == ''){
-                        return const Iterable<String>.empty();
+                  Autocomplete<LocationSuggestion>(
+                    displayStringForOption: (LocationSuggestion option) => option.name,
+                    optionsBuilder: (TextEditingValue textEditingValue) async {
+                      final String query = textEditingValue.text;
+                      if (query.trim().isEmpty) {
+                        return const Iterable<LocationSuggestion>.empty();
                       }
-                      return _cities.where((String option){
-                        return option.toLowerCase().contains(textEidtingValue.text.toLowerCase());
-                      });
+
+                      // TODO: Refactor using proper Dependency Injection (e.g., get_it) later.
+                      final WeatherRepository repository = WeatherRepositoryImpl(
+                          remoteDataSource: WeatherRemoteDataSourceImpl(dio: Dio()));
+
+                      // TODO: Implement debouncing to avoid excessive API calls.
+                      final suggestions = await repository.getCitySuggestions(query);
+                      return suggestions;
                     },
-                    onSelected: (String selection) {
-                      debugPrint('You just selected $selection');
-                      _cityController.text=selection;
+                    onSelected: (LocationSuggestion selection) {
+                      _cityController.text = selection.name;
                       FocusScope.of(context).unfocus();
                     },
-                    fieldViewBuilder: (BuildContext context, TextEditingController fieldTextEditingController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
+                    fieldViewBuilder: (BuildContext context,
+                        TextEditingController fieldTextEditingController,
+                        FocusNode fieldFocusNode,
+                        VoidCallback onFieldSubmitted) {
                       return TextField(
                         controller: fieldTextEditingController,
                         focusNode: fieldFocusNode,
                         decoration: const InputDecoration(
-                          labelText: 'Nhập tên thành phố',
-                          hintText: 'Ví dụ: Hanoi',
+                          labelText: 'Nhập hoặc chọn thành phố',
+                          hintText: 'Ví dụ: Hanoi, Lon...',
                           border: OutlineInputBorder(),
                         ),
-                        onChanged: (String text){
-                          _cityController.text=text;
+                        enabled: !isLoading,
+                        onChanged: (String text) {
+                          // Đồng bộ với controller chính khi người dùng tự gõ
+                          _cityController.text = text;
                         },
-                        enabled: state is! WeatherLoadInProgress,
                         onSubmitted: (_) {
+                          // Đảm bảo controller chính được cập nhật và gửi event
+                          _cityController.text = fieldTextEditingController.text;
                           final cityName = _cityController.text.trim();
-                          if(cityName.isNotEmpty && state is! WeatherLoadInProgress) {
+                          if (cityName.isNotEmpty && !isLoading) {
                             context.read<WeatherBloc>().add(WeatherRequested(cityName));
                           }
                         },
                       );
                     },
-                  ),
+                    optionsViewBuilder: (BuildContext context,
+                        AutocompleteOnSelected<LocationSuggestion> onSelected,
+                        Iterable<LocationSuggestion> options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4.0,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 250),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final LocationSuggestion option = options.elementAt(index);
+                                return InkWell(
+                                  onTap: () {
+                                    onSelected(option);
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(option.displayName), // Hiển thị tên đầy đủ hơn
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ), // Kết thúc Autocomplete
 
                   const SizedBox(height: 20),
 
                   ElevatedButton(
-                    onPressed:
-                        (state is WeatherLoadInProgress)
-                            ? null
-                            : () {
-                              final cityName = _cityController.text.trim();
-                              if (cityName.isNotEmpty) {
-                                context.read<WeatherBloc>().add(
-                                  WeatherRequested(cityName),
-                                );
-                              }
-                            },
+                    onPressed: (isLoading || _cityController.text.trim().isEmpty)
+                        ? null // Disable khi đang load hoặc ô nhập rỗng
+                        : () {
+                      final cityName = _cityController.text.trim();
+                      // Gửi sự kiện với tên thành phố từ controller chính
+                      context.read<WeatherBloc>().add(WeatherRequested(cityName));
+                    },
                     child: const Text('Xem Thời Tiết'),
                   ),
                   const SizedBox(height: 30),
 
+                  // Phần hiển thị kết quả thời tiết
                   _buildWeatherContent(context, state),
                 ],
               ),
@@ -103,6 +149,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
+  // Hàm xây dựng nội dung hiển thị thời tiết (giữ nguyên như trước)
   Widget _buildWeatherContent(BuildContext context, WeatherState state) {
     if (state is WeatherInitial) {
       return const Center(
@@ -117,26 +164,23 @@ class _WeatherScreenState extends State<WeatherScreen> {
     } else if (state is WeatherLoadSuccess) {
       final weatherData = state.weatherData;
       final weatherInfo =
-          weatherData.weather.isNotEmpty ? weatherData.weather[0] : null;
+      weatherData.weather.isNotEmpty ? weatherData.weather[0] : null;
       final iconCode = weatherInfo?.icon;
       final iconUrl =
-          iconCode != null
-              ? 'https://openweathermap.org/img/wn/$iconCode@2x.png'
-              : null;
+      iconCode != null
+          ? 'https://openweathermap.org/img/wn/$iconCode@2x.png'
+          : null;
 
       return SingleChildScrollView(
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
-          crossAxisAlignment:
-              CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               weatherData.name,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-
             if (iconUrl != null)
               Image.network(
                 iconUrl,
@@ -154,26 +198,22 @@ class _WeatherScreenState extends State<WeatherScreen> {
                   );
                 },
               ),
-
             if (weatherInfo != null)
               Text(
-                weatherInfo.description,
+                weatherInfo.description, // Sử dụng description từ WeatherInfo
                 style: const TextStyle(
                   fontSize: 18,
                   fontStyle: FontStyle.italic,
                 ),
               ),
             const SizedBox(height: 20),
-
             Text(
               '${weatherData.main.temp.toStringAsFixed(1)}°C',
               style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
             Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 Column(
                   children: [
@@ -213,13 +253,14 @@ class _WeatherScreenState extends State<WeatherScreen> {
         ),
       );
     } else {
+      // Trường hợp state khác không xác định
       return const SizedBox.shrink();
     }
   }
 
   @override
   void dispose() {
-    _cityController.dispose();
+    _cityController.dispose(); // Nhớ dispose controller
     super.dispose();
   }
 }

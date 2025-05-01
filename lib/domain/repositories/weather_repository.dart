@@ -1,3 +1,5 @@
+import 'package:weather_app/domain/entities/location_suggestion.dart';
+
 import '../entities/weather.dart';
 
 abstract class WeatherRepository {
@@ -5,4 +7,6 @@ abstract class WeatherRepository {
   ///
   /// Ném ra [Exception] nếu có lỗi xảy ra.
   Future<WeatherData> getWeatherByCity(String city);
+
+  Future<List<LocationSuggestion>> getCitySuggestions(String query);
 }
