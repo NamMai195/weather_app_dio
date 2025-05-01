@@ -1,7 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:weather_app/data/datasources/impl/weather_remote_datasource_impl.dart';
 import 'package:weather_app/locator.dart';
 
 import '../bloc/weather_bloc.dart';
@@ -11,8 +9,7 @@ import '../bloc/weather_state.dart';
 import '../../domain/entities/location_suggestion.dart';
 import '../../domain/repositories/weather_repository.dart';
 
-import '../../data/datasources/weather_remote_datasource.dart';
-import '../../data/repositories/weather_repository_impl.dart';
+
 
 
 

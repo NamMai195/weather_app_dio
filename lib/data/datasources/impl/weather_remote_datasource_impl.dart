@@ -1,79 +1,111 @@
 import 'package:dio/dio.dart';
 import 'package:weather_app/config.dart';
-import 'package:weather_app/data/datasources/weather_remote_datasource.dart';
+import '../weather_remote_datasource.dart';
 
 class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
   final Dio dio;
   final String apiKey = openWeatherApiKey;
-  final String baseUrl =
-      'https://api.openweathermap.org/data/2.5';
+  final String weatherBaseUrl = 'https://api.openweathermap.org/data/2.5';
+  final String geocodingBaseUrl = 'https://api.openweathermap.org/geo/1.0';
 
-  final String geocodingBaseUrl ='https://api.openweathermap.org/geo/1.0';
 
   WeatherRemoteDataSourceImpl({required this.dio});
 
   @override
-  Future<Map<String, dynamic>> getCurrentWeather(String city) async {
-    final url = '$baseUrl/weather';
+  Future<Map<String, dynamic>> getCurrentWeather({
+    String? cityName,
+    double? lat,
+    double? lon,
+  }) async {
+    // Input Validation
+    final bool hasCityName = cityName != null && cityName.isNotEmpty;
+    final bool hasCoordinates = lat != null && lon != null;
 
-    final queryParameters = {
-      'q': city,
+    if (!hasCityName && !hasCoordinates) {
+      throw ArgumentError('Cần cung cấp cityName hoặc cả lat và lon.');
+    }
+    // Không cần warning nếu ưu tiên tọa độ
+
+    final Map<String, dynamic> queryParameters = {
       'appid': apiKey,
       'units': 'metric',
+      'lang': 'vi', // Thêm lang=vi nếu muốn kết quả tiếng Việt
     };
 
+    // Xây dựng Query Parameters dựa trên input
+    if (hasCoordinates) {
+      queryParameters['lat'] = lat;
+      queryParameters['lon'] = lon;
+      print("Fetching weather using coordinates: lat=$lat, lon=$lon");
+    } else { // Chỉ dùng cityName nếu không có tọa độ
+      queryParameters['q'] = cityName;
+      print("Fetching weather using city name: $cityName");
+    }
+
+    final url = '$weatherBaseUrl/weather';
     print('API Request URL: $url');
     print('API Request Params: $queryParameters');
 
     try {
-      final response = await dio.get(url, queryParameters: queryParameters);
+      final response = await dio.get(
+        url,
+        queryParameters: queryParameters,
+      );
 
       if (response.statusCode == 200) {
         print('API Response Data: ${response.data}');
         return response.data as Map<String, dynamic>;
       } else {
-        print('API Error: Status Code ${response.statusCode}');
-        throw Exception('Lỗi server: ${response.statusCode}');
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          error: 'Lỗi API thời tiết: ${response.statusCode}',
+          type: DioExceptionType.badResponse,
+        );
       }
     } on DioException catch (e) {
-      print('DioException: ${e.message}');
-      throw Exception('Lỗi mạng hoặc API: ${e.message}');
+      print('DioException in getCurrentWeather: ${e.response?.data ?? e.message}');
+      rethrow; // Ném lại để Repository xử lý
     } catch (e) {
-      print('Unexpected Error: ${e.toString()}');
-      throw Exception('Lỗi không xác định: ${e.toString()}');
+      print('Unexpected error in getCurrentWeather: $e');
+      throw Exception('Lỗi không xác định khi lấy dữ liệu thời tiết.');
     }
   }
 
   @override
-  Future<List<dynamic>> getCitySuggestionDate(String query) async{
-    final url='$geocodingBaseUrl/direct';
-    final queryParameters={
-      'q' :query,
-      'limit':5,
-      'appid' :apiKey,
+  Future<List<dynamic>> getCitySuggestionData(String query, {int limit = 5}) async {
+    final url = '$geocodingBaseUrl/direct';
+    final queryParameters = {
+      'q': query,
+      'limit': limit,
+      'appid': apiKey,
     };
-    print('Geocoding Request URL :$url');
+    print('Geocoding Request URL: $url');
     print('Geocoding Request Params: $queryParameters');
 
     try {
       final response = await dio.get(
-          url,
-          queryParameters: queryParameters
+        url,
+        queryParameters: queryParameters,
       );
-      if(response.statusCode == 200) {
-        if(response.data is List) {
-          print('Geocoding Response Data: ${response.data}');
-          return response.data as List<dynamic>;
-        } else {
-          throw Exception('API Geocoding khong tra ve dinh dang List mong doi');
-        }
+
+      if (response.statusCode == 200 && response.data is List) {
+        print('Geocoding Response Data: ${response.data}');
+        return response.data as List<dynamic>;
       } else {
-        throw Exception('Loi server Geocoding: ${response.statusCode}');
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          error: 'Lỗi API Geocoding: ${response.statusCode}',
+          type: DioExceptionType.badResponse,
+        );
       }
     } on DioException catch (e) {
-      throw Exception('Loi mang hoac API Geocoding : ${e.message}');
+      print('DioException in getCitySuggestionData: ${e.response?.data ?? e.message}');
+      rethrow;
     } catch (e) {
-      throw Exception('Loi khong xac dinh khi goi Geocoding: ${e.toString()}');
+      print('Unexpected error in getCitySuggestionData: $e');
+      throw Exception('Lỗi không xác định khi lấy gợi ý thành phố.');
     }
   }
 }
