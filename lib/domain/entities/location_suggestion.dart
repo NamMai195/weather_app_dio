@@ -4,11 +4,15 @@ class LocationSuggestion extends Equatable {
   final String name;
   final String? country;
   final String? state;
+  final double? lat;
+  final double? lon;
 
   const LocationSuggestion({
     required this.name,
     this.country,
     this.state,
+    this.lat,
+    this.lon
   });
 
   // Helper để tạo chuỗi hiển thị thân thiện
@@ -22,6 +26,6 @@ class LocationSuggestion extends Equatable {
   }
 
   @override
-  List<Object?> get props => [name, country, state];
+  List<Object?> get props => [name, country, state,lat,lon];
 
 }

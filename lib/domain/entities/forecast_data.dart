@@ -1,19 +1,20 @@
 import 'dart:convert';
 import 'package:equatable/equatable.dart';
 
+// --- Helper function ---
 DateTime? _parseDateTimeSafe(String? dateString) {
   if (dateString == null) return null;
   return DateTime.tryParse(dateString);
 }
 
-T? _parseEnumSafe<T>(Map<String, T>? enumMap, String? key) {
-  if (enumMap == null || key == null) return null;
-  return enumMap[key];
+T _parseEnumSafe<T>(Map<String, T> enumMap, String? key, {required T defaultValue}) {
+  if (key == null) return defaultValue;
+
+  return enumMap[key] ?? defaultValue;
 }
 
 
 ForecastData forecastDataFromJson(String str) => ForecastData.fromJson(json.decode(str));
-
 String forecastDataToJson(ForecastData data) => json.encode(data.toJson());
 
 class ForecastData extends Equatable {
@@ -32,14 +33,10 @@ class ForecastData extends Equatable {
   });
 
   factory ForecastData.fromJson(Map<String, dynamic> json) => ForecastData(
-    cod: json["cod"] ?? 'N/A',
+    cod: json["cod"]?.toString() ?? 'N/A',
     message: json["message"] ?? 0,
     cnt: json["cnt"] ?? 0,
-    // Xử lý list null
-    list: json["list"] == null
-        ? []
-        : List<ListElement>.from(
-        (json["list"] as List<dynamic>).map((x) => ListElement.fromJson(x))),
+    list: json["list"] == null ? [] : List<ListElement>.from((json["list"] as List<dynamic>? ?? []).map((x) => ListElement.fromJson(x))), // Thêm xử lý null cho list trước khi map
     city: City.fromJson(json["city"] ?? {}),
   );
 
@@ -105,25 +102,13 @@ class City extends Equatable {
 class Coord extends Equatable {
   final double lat;
   final double lon;
-
-  const Coord({
-    required this.lat,
-    required this.lon,
-  });
-
+  const Coord({ required this.lat, required this.lon });
   factory Coord.fromJson(Map<String, dynamic> json) => Coord(
-    // Thêm ?? 0.0
     lat: json["lat"]?.toDouble() ?? 0.0,
     lon: json["lon"]?.toDouble() ?? 0.0,
   );
-
-  Map<String, dynamic> toJson() => {
-    "lat": lat,
-    "lon": lon,
-  };
-
-  @override
-  List<Object?> get props => [lat, lon];
+  Map<String, dynamic> toJson() => { "lat": lat, "lon": lon };
+  @override List<Object?> get props => [lat, lon];
 }
 
 class ListElement extends Equatable {
@@ -154,11 +139,7 @@ class ListElement extends Equatable {
   factory ListElement.fromJson(Map<String, dynamic> json) => ListElement(
     dt: json["dt"] ?? 0,
     main: MainClass.fromJson(json["main"] ?? {}),
-    // Xử lý list null
-    weather: json["weather"] == null
-        ? []
-        : List<Weather>.from(
-        (json["weather"] as List<dynamic>).map((x) => Weather.fromJson(x))),
+    weather: json["weather"] == null ? [] : List<Weather>.from((json["weather"] as List<dynamic>? ?? []).map((x) => Weather.fromJson(x))),
     clouds: Clouds.fromJson(json["clouds"] ?? {}),
     wind: Wind.fromJson(json["wind"] ?? {}),
     visibility: json["visibility"] ?? 0,
@@ -187,21 +168,10 @@ class ListElement extends Equatable {
 
 class Clouds extends Equatable {
   final int all;
-
-  const Clouds({
-    required this.all,
-  });
-
-  factory Clouds.fromJson(Map<String, dynamic> json) => Clouds(
-    all: json["all"] ?? 0,
-  );
-
-  Map<String, dynamic> toJson() => {
-    "all": all,
-  };
-
-  @override
-  List<Object?> get props => [all];
+  const Clouds({ required this.all });
+  factory Clouds.fromJson(Map<String, dynamic> json) => Clouds( all: json["all"] ?? 0 );
+  Map<String, dynamic> toJson() => { "all": all };
+  @override List<Object?> get props => [all];
 }
 
 class MainClass extends Equatable {
@@ -250,103 +220,77 @@ class MainClass extends Equatable {
     "humidity": humidity,
     "temp_kf": tempKf,
   };
-
-  @override
-  List<Object?> get props => [temp, feelsLike, tempMin, tempMax, pressure, seaLevel, grndLevel, humidity, tempKf];
+  @override List<Object?> get props => [temp, feelsLike, tempMin, tempMax, pressure, seaLevel, grndLevel, humidity, tempKf];
 }
 
 class Rain extends Equatable {
   final double the3H;
-
-  const Rain({
-    required this.the3H,
-  });
-
-  factory Rain.fromJson(Map<String, dynamic> json) => Rain(
-    // Thêm ?? 0.0
-    the3H: json["3h"]?.toDouble() ?? 0.0,
-  );
-
-  Map<String, dynamic> toJson() => {
-    "3h": the3H,
-  };
-
-  @override
-  List<Object?> get props => [the3H];
+  const Rain({ required this.the3H });
+  factory Rain.fromJson(Map<String, dynamic> json) => Rain( the3H: json["3h"]?.toDouble() ?? 0.0 );
+  Map<String, dynamic> toJson() => { "3h": the3H };
+  @override List<Object?> get props => [the3H];
 }
 
 class Sys extends Equatable {
   final Pod? pod;
-
-  const Sys({
-    this.pod,
-  });
-
+  const Sys({ this.pod });
   factory Sys.fromJson(Map<String, dynamic> json) => Sys(
-    pod: _parseEnumSafe(podValues.map, json["pod"]),
+    pod: _parseEnumSafe(podValues.map, json["pod"], defaultValue: Pod.N), // Dùng default N
   );
-
-  Map<String, dynamic> toJson() => {
-    "pod": podValues.reverse[pod],
-  };
-
-  @override
-  List<Object?> get props => [pod];
+  Map<String, dynamic> toJson() => { "pod": podValues.reverse[pod] };
+  @override List<Object?> get props => [pod];
 }
 
-enum Pod { D, N }
-
-final podValues = EnumValues({"d": Pod.D, "n": Pod.N});
+enum Pod { D, N, UNKNOWN } // Thêm giá trị UNKNOWN
+final podValues = EnumValues({"d": Pod.D, "n": Pod.N}); // Map không cần UNKNOWN
 
 class Weather extends Equatable {
   final int id;
   final MainEnum? main;
   final Description? description;
-  final Icon? icon;
+  // +++ ĐÃ ĐỔI TÊN +++
+  final WeatherIconEnum? icon; // Sử dụng tên mới
 
   const Weather({
     required this.id,
     this.main,
     this.description,
-    this.icon,
+    this.icon, // Sử dụng tên mới
   });
 
   factory Weather.fromJson(Map<String, dynamic> json) => Weather(
     id: json["id"] ?? 0,
-    main: _parseEnumSafe(mainEnumValues.map, json["main"]),
-    description: _parseEnumSafe(descriptionValues.map, json["description"]),
-    icon: _parseEnumSafe(iconValues.map, json["icon"]),
+    main: _parseEnumSafe(mainEnumValues.map, json["main"], defaultValue: MainEnum.UNKNOWN),
+    description: _parseEnumSafe(descriptionValues.map, json["description"], defaultValue: Description.UNKNOWN),
+    // +++ SỬ DỤNG ENUM/MAP ĐÃ ĐỔI TÊN +++
+    icon: _parseEnumSafe(weatherIconEnumValues.map, json["icon"], defaultValue: WeatherIconEnum.UNKNOWN),
   );
 
   Map<String, dynamic> toJson() => {
     "id": id,
     "main": mainEnumValues.reverse[main],
     "description": descriptionValues.reverse[description],
-    "icon": iconValues.reverse[icon],
+    // +++ SỬ DỤNG ENUM/MAP ĐÃ ĐỔI TÊN +++
+    "icon": weatherIconEnumValues.reverse[icon],
   };
 
   @override
   List<Object?> get props => [id, main, description, icon];
 }
 
-
-enum Description {
-  MA_NH, MY_CM, MY_EN_U_M, MY_RI_RC, MY_THA, UNKNOWN
-}
+// --- Định nghĩa các Enum và EnumValues ---
+enum Description { MA_NH, MY_CM, MY_EN_U_M, MY_RI_RC, MY_THA, UNKNOWN }
 final descriptionValues = EnumValues({
-  "mưa nhẹ": Description.MA_NH,
-  "mây cụm": Description.MY_CM,
-  "mây đen u ám": Description.MY_EN_U_M,
-  "mây rải rác": Description.MY_RI_RC,
+  "mưa nhẹ": Description.MA_NH, "mây cụm": Description.MY_CM,
+  "mây đen u ám": Description.MY_EN_U_M, "mây rải rác": Description.MY_RI_RC,
   "mây thưa": Description.MY_THA
 });
 
-enum Icon {
-  THE_02_N, THE_03_N, THE_04_D, THE_04_N, THE_10_D, THE_10_N, UNKNOWN
-}
-final iconValues = EnumValues({
-  "02n": Icon.THE_02_N, "03n": Icon.THE_03_N, "04d": Icon.THE_04_D,
-  "04n": Icon.THE_04_N, "10d": Icon.THE_10_D, "10n": Icon.THE_10_N
+enum WeatherIconEnum { THE_02_N, THE_03_N, THE_04_D, THE_04_N, THE_10_D, THE_10_N, UNKNOWN }
+final weatherIconEnumValues = EnumValues({
+  "02n": WeatherIconEnum.THE_02_N, "03n": WeatherIconEnum.THE_03_N,
+  "04d": WeatherIconEnum.THE_04_D, "04n": WeatherIconEnum.THE_04_N,
+  "10d": WeatherIconEnum.THE_10_D, "10n": WeatherIconEnum.THE_10_N
 });
 
 enum MainEnum { CLOUDS, RAIN, UNKNOWN }
@@ -356,41 +300,30 @@ final mainEnumValues = EnumValues({
 
 class EnumValues<T> {
   Map<String, T> map;
-  late Map<T, String> reverseMap;
+  Map<T, String>? _reverseMap;
 
   EnumValues(this.map);
 
   Map<T, String> get reverse {
-    reverseMap = map.map((k, v) => MapEntry(v, k));
-    return reverseMap;
+    _reverseMap ??= map.map((k, v) => MapEntry(v, k));
+    return _reverseMap!;
   }
 }
-
-
 
 class Wind extends Equatable {
   final double speed;
   final int deg;
   final double gust;
-
-  const Wind({
-    required this.speed,
-    required this.deg,
-    required this.gust,
-  });
-
+  const Wind({ required this.speed, required this.deg, required this.gust });
   factory Wind.fromJson(Map<String, dynamic> json) => Wind(
     speed: json["speed"]?.toDouble() ?? 0.0,
     deg: json["deg"] ?? 0,
     gust: json["gust"]?.toDouble() ?? 0.0,
   );
-
   Map<String, dynamic> toJson() => {
     "speed": speed,
     "deg": deg,
     "gust": gust,
   };
-
-  @override
-  List<Object?> get props => [speed, deg, gust];
+  @override List<Object?> get props => [speed, deg, gust];
 }

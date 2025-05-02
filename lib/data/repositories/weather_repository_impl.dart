@@ -60,17 +60,16 @@ class WeatherRepositoryImpl implements WeatherRepository {
           final country = json['country'] as String?;
           final state = json['state'] as String?;
 
-          // Lấy thêm lat/lon nếu cần parse vào LocationSuggestion
-          // final lat = json['lat'] as double?;
-          // final lon = json['lon'] as double?;
+          final lat = json['lat'] as double?;
+          final lon = json['lon'] as double?;
 
           if (name != null) {
             return LocationSuggestion(
               name: name,
               country: country,
               state: state,
-              // lat: lat, // Bỏ comment nếu đã thêm lat/lon vào entity
-              // lon: lon,
+              lat: lat,
+              lon: lon,
             );
           }
         }
@@ -90,7 +89,7 @@ class WeatherRepositoryImpl implements WeatherRepository {
 
     } catch (e) {
       print('WeatherRepositoryImpl Error (getCitySuggestions): ${e.toString()}');
-      return []; // Trả về rỗng nếu có lỗi
+      return [];
     }
   }
 

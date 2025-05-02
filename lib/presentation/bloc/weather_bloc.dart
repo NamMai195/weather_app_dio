@@ -1,80 +1,80 @@
 import 'package:bloc/bloc.dart';
-import 'package:weather_app/data/datasources/weather_remote_datasource.dart';
-import 'package:weather_app/domain/entities/forecast_data.dart';
-import 'package:weather_app/domain/entities/weather.dart';
-import 'package:weather_app/domain/repositories/weather_repository.dart';
-import 'package:weather_app/locator.dart';
 import 'package:weather_app/presentation/bloc/weather_event.dart';
-import 'package:weather_app/presentation/bloc/weather_state.dart'; // Import Equatable
+import 'package:weather_app/presentation/bloc/weather_state.dart';
+import '../../domain/entities/forecast_data.dart';
+import '../../domain/entities/weather.dart';
+import '../../domain/repositories/weather_repository.dart';
+
 
 class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
   final WeatherRepository weatherRepository;
 
   WeatherBloc({required this.weatherRepository}) : super(WeatherInitial()) {
     on<WeatherRequested>(_onWeatherRequested);
+    on<WeatherRequestedCoords>(_onWeatherRequestedByCoords);
   }
 
-  // Future<void> _onWeatherRequested(
-  //   WeatherRequested event,
-  //   Emitter<WeatherState> emit,
-  // ) async {
-  //   final String city = event.city;
-  //   emit(WeatherLoadInProgress());
-  //
-  //   try {
-  //     final WeatherData weatherData = await weatherRepository.getWeatherByCity(
-  //       city,
-  //     );
-  //
-  //     emit(WeatherLoadSuccess(weatherData));
-  //   } catch (e) {
-  //     emit(WeatherLoadFailure(e.toString()));
-  //   }
-  // }
   Future<void> _onWeatherRequested(
       WeatherRequested event,
       Emitter<WeatherState> emit,
       ) async {
     final String city = event.city;
     emit(WeatherLoadInProgress());
-
+    print('BLoC: Received WeatherRequested for city: $city');
     try {
-      print('BLoc: lay toa do cho :$city');
-      final suggestions = await weatherRepository.getCitySuggestions(city);
-      if (suggestions.isEmpty) {
-        print('Bloc: khong tim thay toa do cho $city');
-        emit(const WeatherLoadFailure('Khong tim thay thanh pho:'));
-        return;
-      }
+      final weatherData = await weatherRepository.getWeatherByCity(event.city);
+      final lat = weatherData.coord.lat;
+      final lon = weatherData.coord.lon;
+      print('BLoC: Fetching forecast for city ($city) at Lat=$lat, Lon=$lon');
+      final forecastData = await weatherRepository.getForecastData(lat: lat, lon: lon);
 
-      final firstSuggestion = suggestions.first;
-      final geoDate =await locator<WeatherRemoteDataSource>().getCitySuggestionData(firstSuggestion.name,limit: 1);
-      if(geoDate.isEmpty || geoDate.first['lat'] == null || geoDate.first['lon'] == null){
-        throw Exception('Khong the xác định vị trí cho: $city');
-      }
-      final double lat=geoDate.first['lat'];
-      final double lon=geoDate.first['lon'];
+      print('BLoC: Fetched current weather and forecast successfully for city: $city');
+      emit(WeatherLoadSuccess(weatherData, forecastData,event.city)); // Gửi state thành công với cả 2 data
 
-      print('Bloc: toa do tim duoc :Lat=$lat , Lon=$lon');
-      print('Bloc Bat dau goi dong thoi api thoi tiet va du bao');
-
-      final results= await Future.wait([
-        weatherRepository.getCurrentWeatherCoords(lat: lat,lon: lon),
-        weatherRepository.getForecastData(lat: lat, lon: lon)
-      ]);
-      if(results.length==2 && results[0] is WeatherData && results[1] is ForecastData) {
-        final weatherDate = results[0] as WeatherData;
-        final forecastData= results[1] as ForecastData;
-
-        print('Bloc: goi 2 api thanh cong');
-        emit(WeatherLoadSuccess(weatherDate, forecastData));
-      } else {
-        print('Bloc: loi kieu tu lieu tra ve tu Future.wait');
-        throw Exception('Loi xu ly du lieu tra ve tu API');
-      }
     } catch (e) {
-      print('BLoC: Lỗi trong _onWeatherRequested: ${e.toString()}');
-      emit(WeatherLoadFailure(e.toString()));
+      print('BLoC: Error in _onWeatherRequested: ${e.toString()}');
+      // TODO: Cải thiện message lỗi
+      emit(WeatherLoadFailure('Lỗi khi tìm theo tên TP: ${e.toString()}'));
     }
   }
+
+  // --- BỘ XỬ LÝ CHO EVENT TÌM THEO TỌA ĐỘ ---
+  Future<void> _onWeatherRequestedByCoords(
+      WeatherRequestedCoords event,
+      Emitter<WeatherState> emit,
+      ) async {
+    emit(WeatherLoadInProgress()); // Bắt đầu trạng thái loading
+    print('BLoC: Received WeatherRequestedByCoords for lat=${event.lat}, lon=${event.lon}');
+      // Sau khi có WeatherData (chứa coord), gọi thêm hàm lấy forecast
+
+    try {
+      print('BLoC: Calling getCurrentWeatherByCoords and getForecastData concurrently...');
+      // Gọi đồng thời API lấy thời tiết hiện tại và dự báo bằng Future.wait
+      // Sử dụng các hàm repo nhận trực tiếp tọa độ
+      final results = await Future.wait([
+        weatherRepository.getCurrentWeatherCoords(lat: event.lat, lon: event.lon),
+        weatherRepository.getForecastData(lat: event.lat, lon: event.lon)
+      ]);
+
+      // Kiểm tra kiểu dữ liệu trả về
+      if (results.length == 2 && results[0] is WeatherData && results[1] is ForecastData) {
+        final weatherData = results[0] as WeatherData;
+        final forecastData = results[1] as ForecastData;
+
+        print('BLoC: Fetched current weather and forecast successfully by coords.');
+        // Thành công -> Phát ra state Success kèm cả 2 dữ liệu
+        emit(WeatherLoadSuccess(weatherData, forecastData, event.selectedName));
+      } else {
+        print('BLoC: Error processing results from Future.wait');
+        throw Exception('Lỗi xử lý dữ liệu trả về từ API.');
+      }
+
+    } catch (e) {
+      // Thất bại -> Phát ra state Failure kèm thông báo lỗi
+      print('BLoC: Error in _onWeatherRequestedByCoords: ${e.toString()}');
+      // TODO: Cải thiện message lỗi
+      emit(WeatherLoadFailure('Lỗi khi tìm theo tọa độ: ${e.toString()}'));
+    }
+  }
+// --- KẾT THÚC BỘ XỬ LÝ MỚI ---
 }
