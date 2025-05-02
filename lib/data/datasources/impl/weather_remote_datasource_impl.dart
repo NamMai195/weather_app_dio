@@ -108,4 +108,57 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
       throw Exception('Lỗi không xác định khi lấy gợi ý thành phố.');
     }
   }
+
+  @override
+  Future<Map<String, dynamic>> getForecastWeather({
+    String? cityName,
+    double? lat,
+    double? lon}) async{
+    final bool hasCityName = cityName !=null && cityName.isNotEmpty;
+    final bool hasCoordinates = lat != null && lon != null;
+
+    if(!hasCityName && !hasCoordinates){
+      throw ArgumentError('Can cung cap cityName hoac ca lat va lon.');
+    }
+    final Map<String, dynamic> queryParameters = {
+      'appid': apiKey,
+      'units': 'metric',
+      'lang': 'vi',
+    };
+
+    //Xay dung query parameters dua tren toa do
+    if(hasCoordinates) {
+      queryParameters['lat'] =lat;
+      queryParameters['lon'] =lon;
+      print('Fetching forcast using city name: $cityName');
+    } else {
+      queryParameters['q'] =cityName;
+      print('Fetching forecast using city name: $cityName');
+    }
+
+    //endpoint cho du lieu dự báo thời tiết 5 ngày
+    final url ='$weatherBaseUrl/forecast';
+
+    print('API Request URL: $url');
+    print('API Request Params: $queryParameters');
+
+    try{
+      final reponse = await dio.get(url,queryParameters: queryParameters);
+
+      if(reponse.statusCode==200) {
+        print('API Response Data: ${reponse.data}');
+        return reponse.data as Map<String, dynamic>;
+      } else {
+        throw DioException(requestOptions: reponse.requestOptions,
+        response: reponse,error: 'Lỗi API dự báo thời tiết: ${reponse.statusCode}',
+        type: DioExceptionType.badResponse);
+      }
+    } on DioException catch (e) {
+      print('DioException in getForecastWeather: ${e.response?.data ?? e.message}');
+      rethrow;
+    } catch (e) {
+      print('Unexpected error in getForecastWeather: $e');
+      throw Exception('Lỗi không xác định khi lấy dữ liệu dự báo thời tiết.');
+    }
+  }
 }

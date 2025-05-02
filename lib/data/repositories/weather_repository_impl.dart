@@ -1,3 +1,5 @@
+import 'package:weather_app/domain/entities/forecast_data.dart';
+
 import '../../domain/entities/location_suggestion.dart';
 import '../../domain/entities/weather.dart';
 import '../../domain/repositories/weather_repository.dart';
@@ -89,6 +91,21 @@ class WeatherRepositoryImpl implements WeatherRepository {
     } catch (e) {
       print('WeatherRepositoryImpl Error (getCitySuggestions): ${e.toString()}');
       return []; // Trả về rỗng nếu có lỗi
+    }
+  }
+
+  @override
+  Future<ForecastData> getForecastData({required double lat, required double lon}) async{
+    try {
+      print('Repository: Lấy dự báo thời tiết cho tọa độ: Lat=$lat, Lon=$lon');
+      final Map<String, dynamic> rawForecastData = await remoteDataSource.getForecastWeather(lat: lat, lon: lon);
+
+      print('Repository: Parse');
+      final ForecastData forecastData=ForecastData.fromJson(rawForecastData);
+      return forecastData;
+    } catch (e) {
+      print('WeatherRepositoryImpl Error(getForecastDate): ${e.toString()}');
+      throw Exception('Khong the lay du lieu dự báo thời tiết: ${e.toString()}');
     }
   }
 }
