@@ -45,10 +45,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       if (query.trim().isEmpty) {
                         return const Iterable<LocationSuggestion>.empty();
                       }
-
                       // TODO: Refactor using proper Dependency Injection (e.g., get_it) later.
                       final WeatherRepository repository =locator<WeatherRepository>();
-
                       // TODO: Implement debouncing to avoid excessive API calls.
                       final suggestions = await repository.getCitySuggestions(query);
                       return suggestions;
@@ -139,7 +137,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
-  // Hàm xây dựng nội dung hiển thị thời tiết (giữ nguyên như trước)
   Widget _buildWeatherContent(BuildContext context, WeatherState state) {
     if (state is WeatherInitial) {
       return const Center(
@@ -190,7 +187,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
               ),
             if (weatherInfo != null)
               Text(
-                weatherInfo.description, // Sử dụng description từ WeatherInfo
+                weatherInfo.description,
                 style: const TextStyle(
                   fontSize: 18,
                   fontStyle: FontStyle.italic,
@@ -243,7 +240,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
         ),
       );
     } else {
-      // Trường hợp state khác không xác định
       return const SizedBox.shrink();
     }
   }

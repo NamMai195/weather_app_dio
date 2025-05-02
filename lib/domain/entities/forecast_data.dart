@@ -1,23 +1,16 @@
-// lib/domain/entities/forecast_data.dart
-// ĐÃ SỬA LỖI: Thêm xử lý null safety trong các hàm fromJson
-
 import 'dart:convert';
-import 'package:equatable/equatable.dart'; // Thêm Equatable cho các lớp chính
+import 'package:equatable/equatable.dart';
 
-// --- Helper function và Enums ---
-// Helper function để parse DateTime an toàn
 DateTime? _parseDateTimeSafe(String? dateString) {
   if (dateString == null) return null;
-  return DateTime.tryParse(dateString); // Dùng tryParse thay vì parse
+  return DateTime.tryParse(dateString);
 }
 
-// Helper function để parse Enum an toàn
 T? _parseEnumSafe<T>(Map<String, T>? enumMap, String? key) {
   if (enumMap == null || key == null) return null;
-  return enumMap[key]; // Không dùng '!', trả về null nếu không tìm thấy
+  return enumMap[key];
 }
 
-// --- Các lớp Model ---
 
 ForecastData forecastDataFromJson(String str) => ForecastData.fromJson(json.decode(str));
 
@@ -39,15 +32,15 @@ class ForecastData extends Equatable {
   });
 
   factory ForecastData.fromJson(Map<String, dynamic> json) => ForecastData(
-    cod: json["cod"] ?? 'N/A', // Thêm default
-    message: json["message"] ?? 0, // Thêm default
-    cnt: json["cnt"] ?? 0, // Thêm default
+    cod: json["cod"] ?? 'N/A',
+    message: json["message"] ?? 0,
+    cnt: json["cnt"] ?? 0,
     // Xử lý list null
     list: json["list"] == null
         ? []
         : List<ListElement>.from(
         (json["list"] as List<dynamic>).map((x) => ListElement.fromJson(x))),
-    city: City.fromJson(json["city"] ?? {}), // Cung cấp map rỗng nếu city null
+    city: City.fromJson(json["city"] ?? {}),
   );
 
   Map<String, dynamic> toJson() => {
@@ -84,14 +77,14 @@ class City extends Equatable {
   });
 
   factory City.fromJson(Map<String, dynamic> json) => City(
-    id: json["id"] ?? 0, // Thêm default
-    name: json["name"] ?? 'N/A', // Thêm default
-    coord: Coord.fromJson(json["coord"] ?? {}), // Cung cấp map rỗng nếu coord null
-    country: json["country"] ?? 'N/A', // Thêm default
-    population: json["population"] ?? 0, // Thêm default
-    timezone: json["timezone"] ?? 0, // Thêm default
-    sunrise: json["sunrise"] ?? 0, // Thêm default
-    sunset: json["sunset"] ?? 0, // Thêm default
+    id: json["id"] ?? 0,
+    name: json["name"] ?? 'N/A',
+    coord: Coord.fromJson(json["coord"] ?? {}),
+    country: json["country"] ?? 'N/A',
+    population: json["population"] ?? 0,
+    timezone: json["timezone"] ?? 0,
+    sunrise: json["sunrise"] ?? 0,
+    sunset: json["sunset"] ?? 0,
   );
 
   Map<String, dynamic> toJson() => {
@@ -140,10 +133,10 @@ class ListElement extends Equatable {
   final Clouds clouds;
   final Wind wind;
   final int visibility;
-  final double pop; // Probability of precipitation
-  final Rain? rain; // rain có thể null
+  final double pop;
+  final Rain? rain;
   final Sys sys;
-  final DateTime? dtTxt; // DateTime có thể null nếu parse lỗi
+  final DateTime? dtTxt;
 
   const ListElement({
     required this.dt,
@@ -155,24 +148,23 @@ class ListElement extends Equatable {
     required this.pop,
     this.rain,
     required this.sys,
-    this.dtTxt, // Cập nhật constructor
+    this.dtTxt,
   });
 
   factory ListElement.fromJson(Map<String, dynamic> json) => ListElement(
-    dt: json["dt"] ?? 0, // Thêm default
-    main: MainClass.fromJson(json["main"] ?? {}), // Cung cấp map rỗng
+    dt: json["dt"] ?? 0,
+    main: MainClass.fromJson(json["main"] ?? {}),
     // Xử lý list null
     weather: json["weather"] == null
         ? []
         : List<Weather>.from(
         (json["weather"] as List<dynamic>).map((x) => Weather.fromJson(x))),
-    clouds: Clouds.fromJson(json["clouds"] ?? {}), // Cung cấp map rỗng
-    wind: Wind.fromJson(json["wind"] ?? {}), // Cung cấp map rỗng
-    visibility: json["visibility"] ?? 0, // Thêm default
-    pop: json["pop"]?.toDouble() ?? 0.0, // Thêm default
-    rain: json["rain"] == null ? null : Rain.fromJson(json["rain"]), // Giữ nguyên vì rain là nullable
-    sys: Sys.fromJson(json["sys"] ?? {}), // Cung cấp map rỗng
-    // Xử lý parse DateTime an toàn
+    clouds: Clouds.fromJson(json["clouds"] ?? {}),
+    wind: Wind.fromJson(json["wind"] ?? {}),
+    visibility: json["visibility"] ?? 0,
+    pop: json["pop"]?.toDouble() ?? 0.0,
+    rain: json["rain"] == null ? null : Rain.fromJson(json["rain"]),
+    sys: Sys.fromJson(json["sys"] ?? {}),
     dtTxt: _parseDateTimeSafe(json["dt_txt"]),
   );
 
@@ -201,7 +193,7 @@ class Clouds extends Equatable {
   });
 
   factory Clouds.fromJson(Map<String, dynamic> json) => Clouds(
-    all: json["all"] ?? 0, // Thêm default
+    all: json["all"] ?? 0,
   );
 
   Map<String, dynamic> toJson() => {
@@ -236,17 +228,14 @@ class MainClass extends Equatable {
   });
 
   factory MainClass.fromJson(Map<String, dynamic> json) => MainClass(
-    // Thêm ?? 0.0
     temp: json["temp"]?.toDouble() ?? 0.0,
     feelsLike: json["feels_like"]?.toDouble() ?? 0.0,
     tempMin: json["temp_min"]?.toDouble() ?? 0.0,
     tempMax: json["temp_max"]?.toDouble() ?? 0.0,
-    // Thêm ?? 0
     pressure: json["pressure"] ?? 0,
     seaLevel: json["sea_level"] ?? 0,
     grndLevel: json["grnd_level"] ?? 0,
     humidity: json["humidity"] ?? 0,
-    // Thêm ?? 0.0
     tempKf: json["temp_kf"]?.toDouble() ?? 0.0,
   );
 
@@ -287,14 +276,13 @@ class Rain extends Equatable {
 }
 
 class Sys extends Equatable {
-  final Pod? pod; // Đổi thành nullable
+  final Pod? pod;
 
   const Sys({
-    this.pod, // Cập nhật constructor
+    this.pod,
   });
 
   factory Sys.fromJson(Map<String, dynamic> json) => Sys(
-    // Parse Enum an toàn
     pod: _parseEnumSafe(podValues.map, json["pod"]),
   );
 
@@ -312,20 +300,19 @@ final podValues = EnumValues({"d": Pod.D, "n": Pod.N});
 
 class Weather extends Equatable {
   final int id;
-  final MainEnum? main; // Đổi thành nullable
-  final Description? description; // Đổi thành nullable
-  final Icon? icon; // Đổi thành nullable
+  final MainEnum? main;
+  final Description? description;
+  final Icon? icon;
 
   const Weather({
     required this.id,
-    this.main, // Cập nhật constructor
-    this.description, // Cập nhật constructor
-    this.icon, // Cập nhật constructor
+    this.main,
+    this.description,
+    this.icon,
   });
 
   factory Weather.fromJson(Map<String, dynamic> json) => Weather(
-    id: json["id"] ?? 0, // Thêm default
-    // Parse Enum an toàn
+    id: json["id"] ?? 0,
     main: _parseEnumSafe(mainEnumValues.map, json["main"]),
     description: _parseEnumSafe(descriptionValues.map, json["description"]),
     icon: _parseEnumSafe(iconValues.map, json["icon"]),
@@ -342,9 +329,7 @@ class Weather extends Equatable {
   List<Object?> get props => [id, main, description, icon];
 }
 
-// --- Định nghĩa các Enum và EnumValues ---
-// (Giữ nguyên các định nghĩa enum Pod, Description, Icon, MainEnum và class EnumValues<T> như code Nam đã gửi)
-// Tốt hơn nên có một giá trị default/unknown cho mỗi Enum
+
 enum Description {
   MA_NH, MY_CM, MY_EN_U_M, MY_RI_RC, MY_THA, UNKNOWN
 }
@@ -354,7 +339,7 @@ final descriptionValues = EnumValues({
   "mây đen u ám": Description.MY_EN_U_M,
   "mây rải rác": Description.MY_RI_RC,
   "mây thưa": Description.MY_THA
-}); // Thiếu Unknown ở đây, nên xử lý trong _parseEnumSafe hoặc thêm vào map
+});
 
 enum Icon {
   THE_02_N, THE_03_N, THE_04_D, THE_04_N, THE_10_D, THE_10_N, UNKNOWN
@@ -362,14 +347,13 @@ enum Icon {
 final iconValues = EnumValues({
   "02n": Icon.THE_02_N, "03n": Icon.THE_03_N, "04d": Icon.THE_04_D,
   "04n": Icon.THE_04_N, "10d": Icon.THE_10_D, "10n": Icon.THE_10_N
-}); // Thiếu Unknown
+});
 
 enum MainEnum { CLOUDS, RAIN, UNKNOWN }
 final mainEnumValues = EnumValues({
   "Clouds": MainEnum.CLOUDS, "Rain": MainEnum.RAIN
-}); // Thiếu Unknown
+});
 
-// EnumValues class (Giữ nguyên)
 class EnumValues<T> {
   Map<String, T> map;
   late Map<T, String> reverseMap;
@@ -381,7 +365,7 @@ class EnumValues<T> {
     return reverseMap;
   }
 }
-// --- Kết thúc định nghĩa Enum ---
+
 
 
 class Wind extends Equatable {
@@ -396,11 +380,8 @@ class Wind extends Equatable {
   });
 
   factory Wind.fromJson(Map<String, dynamic> json) => Wind(
-    // Thêm ?? 0.0
     speed: json["speed"]?.toDouble() ?? 0.0,
-    // Thêm ?? 0
     deg: json["deg"] ?? 0,
-    // Thêm ?? 0.0
     gust: json["gust"]?.toDouble() ?? 0.0,
   );
 
