@@ -11,4 +11,6 @@ abstract class WeatherRepository {
   Future<List<LocationSuggestion>> getCitySuggestions(String query);
 
   Future<ForecastData> getForecastData({required double lat, required double lon});
+
+  Future<WeatherData> getCurrentWeatherCoords({ double? lat, double? lon});
 }

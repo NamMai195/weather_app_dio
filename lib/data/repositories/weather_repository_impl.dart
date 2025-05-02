@@ -108,4 +108,18 @@ class WeatherRepositoryImpl implements WeatherRepository {
       throw Exception('Khong the lay du lieu dự báo thời tiết: ${e.toString()}');
     }
   }
+
+  @override
+  Future<WeatherData> getCurrentWeatherCoords({double? lat, double? lon}) async{
+    try{
+      print('Repository: lấy thời tiết hiện tại cho tọa độ: Lat=$lat, Lon=$lon');
+      final Map<String,dynamic> weatherJsonMap = await remoteDataSource.getCurrentWeather(lat: lat,lon: lon);
+      print('Repository: Parse dữ liệu thời tiết...');
+      final WeatherData weatherData=WeatherData.fromJson(weatherJsonMap);
+      return weatherData;
+    } catch (e) {
+      print('WeatherRepositoryImpl Error:${e.toString()}');
+      throw Exception('Khong thể lấy dữ liệu thời tiết hiện tại: ${e.toString()}');
+    }
+  }
 }
