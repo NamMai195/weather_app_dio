@@ -17,7 +17,6 @@ class DailySummary extends Equatable {
   });
   @override List<Object?> get props => [date, minTemp, maxTemp, iconCode, description];
 }
-// --- Kết thúc Class DailySummary ---
 
 class ForecastDisplay extends StatelessWidget {
   final ForecastData forecastData;
@@ -27,7 +26,6 @@ class ForecastDisplay extends StatelessWidget {
     required this.forecastData,
   });
 
-  // --- Logic xử lý data forecast thành daily summary ---
   List<DailySummary> _processForecastData(ForecastData data) {
     final List<DailySummary> dailySummaries = [];
     if (data.list.isEmpty) return dailySummaries;
@@ -51,7 +49,6 @@ class ForecastDisplay extends StatelessWidget {
         final midDayItem = itemsForDay.firstWhere(
                 (item) => item.dtTxt != null && item.dtTxt!.hour >= 11 && item.dtTxt!.hour < 15,
             orElse: () => itemsForDay[itemsForDay.length ~/ 2]);
-        // Giả định đã đổi tên thành WeatherIconEnum và có weatherIconEnumValues trong forecast_data.dart
         final WeatherIconEnum? representativeIconEnum = midDayItem.weather.firstOrNull?.icon;
         final String? representativeIconCode = representativeIconEnum != null ? weatherIconEnumValues.reverse[representativeIconEnum] : null;
         final Description? representativeDescEnum = midDayItem.weather.firstOrNull?.description;
@@ -70,7 +67,6 @@ class ForecastDisplay extends StatelessWidget {
     dailySummaries.sort((a, b) => a.date.compareTo(b.date));
     return dailySummaries;
   }
-  // --- Kết thúc logic xử lý ---
 
   @override
   Widget build(BuildContext context) {

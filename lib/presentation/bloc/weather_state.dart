@@ -15,13 +15,33 @@ class WeatherLoadInProgress extends WeatherState {}
 
 class WeatherLoadSuccess extends WeatherState {
   const WeatherLoadSuccess(
-    this.weatherData,this.forecastData,this.displayedCityName,
-  );
+      this.weatherData,
+      this.forecastData,
+      this.displayedCityName,
+          { this.allowNewSearch = false }
+      );
+
   final WeatherData weatherData;
   final ForecastData forecastData;
   final String displayedCityName;
+  final bool allowNewSearch;
+
+  WeatherLoadSuccess copyWith({
+    WeatherData? weatherData,
+    ForecastData? forecastData,
+    String? displayedCityName,
+    bool? allowNewSearch,
+  }) {
+    return WeatherLoadSuccess(
+      weatherData ?? this.weatherData,
+      forecastData ?? this.forecastData,
+      displayedCityName ?? this.displayedCityName,
+      allowNewSearch: allowNewSearch ?? this.allowNewSearch,
+    );
+  }
+
   @override
-  List<Object> get props => [weatherData, forecastData, displayedCityName];
+  List<Object?> get props => [weatherData, forecastData, displayedCityName, allowNewSearch];
 }
 
 class WeatherLoadFailure extends WeatherState {

@@ -1,15 +1,14 @@
-import 'package:equatable/equatable.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weather_app/locator.dart';
-import 'package:weather_app/presentation/widgets/current_weather_display.dart';
-import 'package:weather_app/presentation/widgets/forecast_display.dart';
 import '../bloc/weather_bloc.dart';
 import '../bloc/weather_event.dart';
 import '../bloc/weather_state.dart';
 import '../../domain/entities/location_suggestion.dart';
-import '../../domain/entities/forecast_data.dart';
 import '../../domain/repositories/weather_repository.dart';
+import '../widgets/current_weather_display.dart';
+import '../widgets/forecast_display.dart';
 
 
 class WeatherScreen extends StatefulWidget {
@@ -19,17 +18,24 @@ class WeatherScreen extends StatefulWidget {
   State<WeatherScreen> createState() => _WeatherScreenState();
 }
 
-
-
-
 class _WeatherScreenState extends State<WeatherScreen> {
   final TextEditingController _cityController = TextEditingController();
   LocationSuggestion? _selectedSuggestion;
+  Timer? _debounceTimer;
+  List<LocationSuggestion> _currentSuggestions = [];
+  bool _isLoadingSuggestions = false;
+
   @override
   void initState() {
     super.initState();
   }
 
+  @override
+  void dispose() {
+    _cityController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,12 +45,39 @@ class _WeatherScreenState extends State<WeatherScreen> {
         appBar: AppBar(title: const Text('Weather App')),
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
-          child: BlocBuilder<WeatherBloc, WeatherState>(
+          child: BlocListener<WeatherBloc, WeatherState>(
+  listener: (context, state) {
+    if (state is WeatherLoadFailure) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Lỗi'),
+          content: Text(state.message), // Hiển thị message lỗi thân thiện từ state
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(dialogContext).pop(), // Đóng Dialog
+            ),
+          ],
+        ),
+      );
+    }
+  },
+  child: BlocBuilder<WeatherBloc, WeatherState>(
             builder: (context, state) {
               bool isLoading = state is WeatherLoadInProgress;
-              bool canSearch = !isLoading &&
-                  ( (_selectedSuggestion != null && _selectedSuggestion!.lat != null && _selectedSuggestion!.lon != null) ||
-                      (_selectedSuggestion == null && _cityController.text.trim().isNotEmpty) );
+
+              bool inputIsValid = (_selectedSuggestion != null && _selectedSuggestion!.lat != null && _selectedSuggestion!.lon != null) ||
+                  (_selectedSuggestion == null && _cityController.text.trim().isNotEmpty);
+
+              bool allowNewSearchFromState = true;
+              if (state is WeatherLoadSuccess) {
+                allowNewSearchFromState = state.allowNewSearch;
+              }
+
+              bool canPressButtonOrSubmit = !isLoading && inputIsValid && allowNewSearchFromState;
+
+
               return SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -52,28 +85,54 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Autocomplete<LocationSuggestion>(
-                        displayStringForOption: (LocationSuggestion option) => option.name,
-                        optionsBuilder: (TextEditingValue textEditingValue) async {
+                        displayStringForOption: (option) => option.name,
+                        optionsBuilder: (textEditingValue) {
+                          _debounceTimer?.cancel();
                           final String query = textEditingValue.text;
+
                           if (query.trim().isEmpty) {
-                            return const Iterable<LocationSuggestion>.empty();
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if(mounted && (_currentSuggestions.isNotEmpty || _isLoadingSuggestions)) {
+                                setState(() {
+                                  _currentSuggestions = [];
+                                  _isLoadingSuggestions = false;
+                                });
+                              }
+                            });
+                            return _currentSuggestions;
+                          } else {
+                            if (!_isLoadingSuggestions && mounted) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if(mounted) { setState(() { _isLoadingSuggestions = true; }); }
+                              });
+                            }
+                            _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+                              if (mounted && _cityController.text.trim() == query.trim()) {
+                                _fetchSuggestions(query);
+                              } else if (mounted && _isLoadingSuggestions) {
+                                setState(() { _isLoadingSuggestions = false; });
+                              } else if (mounted && query.trim().isEmpty){
+                                setState(() { _currentSuggestions = []; _isLoadingSuggestions = false; });
+                              }
+                            });
+                            return _currentSuggestions;
                           }
-                          final WeatherRepository repository = locator<WeatherRepository>();
-                          // TODO: Implement debouncing.
-                          final suggestions = await repository.getCitySuggestions(query);
-                          return suggestions;
                         },
-                        onSelected: (LocationSuggestion selection) {
+                        onSelected: (selection) {
                           setState(() {
                             _selectedSuggestion = selection;
                             _cityController.text = selection.name;
                           });
                           FocusScope.of(context).unfocus();
+                          context.read<WeatherBloc>().add(UserInputChanged());
                         },
                         fieldViewBuilder: (context, fieldController, focusNode, onSubmitted) {
                           if (_selectedSuggestion == null && _cityController.text != fieldController.text) {
                             fieldController.text = _cityController.text;
+                          } else if (_selectedSuggestion != null && fieldController.text != _selectedSuggestion!.name) {
+                            fieldController.text = _selectedSuggestion!.name;
                           }
+
                           return TextField(
                             controller: fieldController,
                             focusNode: focusNode,
@@ -84,57 +143,68 @@ class _WeatherScreenState extends State<WeatherScreen> {
                             ),
                             enabled: !isLoading,
                             onChanged: (text) {
+                              bool selectionWasCleared = false;
                               _cityController.text = text;
                               if (_selectedSuggestion != null) {
-                                setState(() {
-                                  _selectedSuggestion = null;
-                                });
+                                setState(() { _selectedSuggestion = null; });
+                                selectionWasCleared = true;
+                              }
+                              if (text.isNotEmpty || selectionWasCleared) {
+                                context.read<WeatherBloc>().add(UserInputChanged());
                               }
                             },
                             onSubmitted: (_) {
                               _cityController.text = fieldController.text;
-                              // Gọi hàm xử lý submit chung
-                              _performSearch(context);
+                              if (canPressButtonOrSubmit) {
+                                _performSearch(context);
+                              }
                             },
                           );
                         },
                         optionsViewBuilder: (context, onSelected, options) {
+                          Widget listContent;
+                          if (_isLoadingSuggestions && options.isEmpty && _cityController.text.isNotEmpty) {
+                            listContent = const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(strokeWidth: 2)));
+                          } else if (!_isLoadingSuggestions && options.isEmpty && _cityController.text.isNotEmpty) {
+                            listContent = const Center(child: Padding(padding: EdgeInsets.all(16.0), child: Text("Không tìm thấy gợi ý.")));
+                          } else {
+                            listContent = ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final LocationSuggestion option = options.elementAt(index);
+                                return InkWell(
+                                  onTap: () { onSelected(option); },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(option.displayName),
+                                  ),
+                                );
+                              },
+                            );
+                          }
                           return Align(
                             alignment: Alignment.topLeft,
                             child: Material(
                               elevation: 4.0,
                               child: ConstrainedBox(
                                 constraints: const BoxConstraints(maxHeight: 250),
-                                child: ListView.builder(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  itemCount: options.length,
-                                  itemBuilder: (BuildContext context, int index) {
-                                    final LocationSuggestion option = options.elementAt(index);
-                                    return InkWell(
-                                      onTap: () { onSelected(option); },
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Text(option.displayName),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                child: listContent,
                               ),
                             ),
                           );
                         },
-                      ), // Kết thúc Autocomplete
+                      ),
 
                       const SizedBox(height: 20),
 
                       ElevatedButton(
-                        onPressed: canSearch ? () => _performSearch(context) : null,
+                        onPressed: canPressButtonOrSubmit ? () => _performSearch(context) : null,
                         child: const Text('Xem Thời Tiết'),
                       ),
                       const SizedBox(height: 30),
 
-                      // Phần hiển thị kết quả thời tiết và dự báo
                       _buildWeatherContent(context, state),
                     ],
                   ),
@@ -142,63 +212,61 @@ class _WeatherScreenState extends State<WeatherScreen> {
               );
             },
           ),
+),
         ),
       ),
     );
   }
+
   void _performSearch(BuildContext context) {
-    // Ưu tiên dùng tọa độ từ suggestion đã chọn
-    if (_selectedSuggestion != null &&
-        _selectedSuggestion!.lat != null &&
-        _selectedSuggestion!.lon != null)
-    {
-      print("Dispatching WeatherRequestedByCoords: lat=${_selectedSuggestion!.lat}, lon=${_selectedSuggestion!.lon}");
-      context.read<WeatherBloc>().add(WeatherRequestedCoords(
-        lat: _selectedSuggestion!.lat!,
-        lon: _selectedSuggestion!.lon!,
-        selectedName: _selectedSuggestion!.name,
-      ));
-    }
-    // Nếu không có suggestion hoặc suggestion thiếu tọa độ, dùng city name
-    else if (_cityController.text.trim().isNotEmpty)
-    {
-      final cityName = _cityController.text.trim();
-      print("Dispatching WeatherRequested: city=$cityName");
-      context.read<WeatherBloc>().add(WeatherRequested(cityName));
+    if (_selectedSuggestion != null && _selectedSuggestion!.lat != null && _selectedSuggestion!.lon != null) {
+      context.read<WeatherBloc>().add(WeatherRequestedCoords(lat: _selectedSuggestion!.lat!, lon: _selectedSuggestion!.lon!, selectedName: _selectedSuggestion!.name));
+    } else if (_cityController.text.trim().isNotEmpty) {
+      context.read<WeatherBloc>().add(WeatherRequested(_cityController.text.trim()));
     }
   }
 
   Widget _buildWeatherContent(BuildContext context, WeatherState state) {
     if (state is WeatherInitial) {
+      // Hiển thị thông báo ban đầu
       return const Center( child: Text( 'Nhập tên thành phố và nhấn nút để xem thời tiết.', style: TextStyle(fontSize: 16), textAlign: TextAlign.center, ), );
     } else if (state is WeatherLoadInProgress) {
+      // Hiển thị loading
       return const Center(heightFactor: 5, child: CircularProgressIndicator());
     } else if (state is WeatherLoadSuccess) {
+      // Hiển thị kết quả thành công (dùng widget con)
       return Column(
         children: [
-          // Widget hiển thị thời tiết hiện tại
-          CurrentWeatherDisplay(
-            weatherData: state.weatherData,
-            displayedCityName: state.displayedCityName, // Truyền tên hiển thị
-          ),
-          const SizedBox(height: 30),
-          const Divider(),
-          const SizedBox(height: 10),
-          // Widget hiển thị dự báo
+          CurrentWeatherDisplay(weatherData: state.weatherData, displayedCityName: state.displayedCityName),
+          const SizedBox(height: 30), const Divider(), const SizedBox(height: 10),
           ForecastDisplay(forecastData: state.forecastData),
         ],
       );
     } else if (state is WeatherLoadFailure) {
-      return Center( child: Text( 'Lỗi: ${state.message}', style: const TextStyle(fontSize: 16, color: Colors.red), textAlign: TextAlign.center, ), );
+      // Khi lỗi, không hiển thị gì ở đây cả (hoặc hiển thị lại thông báo ban đầu)
+      // Vì lỗi đã được hiển thị bằng Dialog thông qua BlocListener
+      // return const SizedBox.shrink(); // Trả về widget trống
+      return const Center( child: Text( 'Nhập tên thành phố và nhấn nút để xem thời tiết.', style: TextStyle(fontSize: 16), textAlign: TextAlign.center, ), ); // Hoặc quay về trạng thái ban đầu
     } else {
+      // State không xác định
       return const SizedBox.shrink();
     }
   }
 
-  @override
-  void dispose() {
-    _cityController.dispose();
-    super.dispose();
+  Future<void> _fetchSuggestions(String query) async {
+    if (mounted && !_isLoadingSuggestions) { setState(() { _isLoadingSuggestions = true; }); }
+    print('Fetching suggestions for query: $query');
+    try {
+      final repository = locator<WeatherRepository>();
+      final suggestions = await repository.getCitySuggestions(query);
+      if (mounted) {
+        setState(() { _currentSuggestions = suggestions; _isLoadingSuggestions = false; });
+        print('Suggestions updated: ${_currentSuggestions.length} items');
+      }
+    } catch (e) {
+      print("Error fetching suggestions: $e");
+      if (mounted) { setState(() { _currentSuggestions = []; _isLoadingSuggestions = false; }); }
+    }
   }
-}
 
+}

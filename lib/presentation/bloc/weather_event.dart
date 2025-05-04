@@ -29,4 +29,5 @@ class WeatherRequestedCoords extends WeatherEvent {
   @override
   List<Object> get props => [lat, lon, selectedName];
 }
-
+class UserInputChanged extends WeatherEvent {
+}

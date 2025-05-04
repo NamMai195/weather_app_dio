@@ -12,6 +12,7 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
   WeatherBloc({required this.weatherRepository}) : super(WeatherInitial()) {
     on<WeatherRequested>(_onWeatherRequested);
     on<WeatherRequestedCoords>(_onWeatherRequestedByCoords);
+    on<UserInputChanged>(_onUserInputChanged);
   }
 
   Future<void> _onWeatherRequested(
@@ -29,12 +30,26 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
       final forecastData = await weatherRepository.getForecastData(lat: lat, lon: lon);
 
       print('BLoC: Fetched current weather and forecast successfully for city: $city');
-      emit(WeatherLoadSuccess(weatherData, forecastData,event.city)); // Gửi state thành công với cả 2 data
+      emit(WeatherLoadSuccess(weatherData, forecastData,event.city,allowNewSearch: false)); // Gửi state thành công với cả 2 data
 
     } catch (e) {
       print('BLoC: Error in _onWeatherRequested: ${e.toString()}');
-      // TODO: Cải thiện message lỗi
-      emit(WeatherLoadFailure('Lỗi khi tìm theo tên TP: ${e.toString()}'));
+      // --- SỬA PHẦN XỬ LÝ LỖI ---
+      String displayMessage;
+      final errorString = e.toString().toLowerCase(); // Chuyển về chữ thường để dễ so sánh
+
+      if (errorString.contains('404') || errorString.contains('không tìm thấy thành phố')) {
+        displayMessage = 'Không tìm thấy thành phố "${event.city}".';
+      } else if (errorString.contains('dioexception') || errorString.contains('socketexception') || errorString.contains('connection errored') || errorString.contains('failed host lookup')) {
+        displayMessage = 'Lỗi kết nối mạng hoặc máy chủ. Vui lòng thử lại.';
+      } else if (errorString.contains('401') || errorString.contains('invalid api key')) {
+        displayMessage = 'API key không hợp lệ hoặc hết hạn.'; // Xử lý lỗi API Key nếu muốn
+      }
+      else {
+        displayMessage = 'Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.'; // Lỗi chung chung
+      }
+      emit(WeatherLoadFailure(displayMessage)); // Emit message thân thiện
+      // --- KẾT THÚC SỬA ---
     }
   }
 
@@ -63,18 +78,44 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
 
         print('BLoC: Fetched current weather and forecast successfully by coords.');
         // Thành công -> Phát ra state Success kèm cả 2 dữ liệu
-        emit(WeatherLoadSuccess(weatherData, forecastData, event.selectedName));
+        emit(WeatherLoadSuccess(weatherData, forecastData, event.selectedName,allowNewSearch: false));
       } else {
         print('BLoC: Error processing results from Future.wait');
         throw Exception('Lỗi xử lý dữ liệu trả về từ API.');
       }
 
     } catch (e) {
-      // Thất bại -> Phát ra state Failure kèm thông báo lỗi
       print('BLoC: Error in _onWeatherRequestedByCoords: ${e.toString()}');
-      // TODO: Cải thiện message lỗi
-      emit(WeatherLoadFailure('Lỗi khi tìm theo tọa độ: ${e.toString()}'));
+      // --- SỬA PHẦN XỬ LÝ LỖI ---
+      String displayMessage;
+      final errorString = e.toString().toLowerCase();
+
+      // Lỗi 404 với tọa độ thường ít xảy ra, nhưng có thể là lỗi server hoặc mạng
+      if (errorString.contains('dioexception') || errorString.contains('socketexception') || errorString.contains('connection errored') || errorString.contains('failed host lookup')) {
+        displayMessage = 'Lỗi kết nối mạng hoặc máy chủ. Vui lòng thử lại.';
+      } else if (errorString.contains('401') || errorString.contains('invalid api key')) {
+        displayMessage = 'API key không hợp lệ hoặc hết hạn.';
+      }
+      else {
+        displayMessage = 'Đã có lỗi không mong muốn xảy ra khi tìm theo tọa độ.'; // Lỗi chung chung
+      }
+      emit(WeatherLoadFailure(displayMessage)); // Emit message thân thiện
+      // --- KẾT THÚC SỬA ---
     }
   }
-// --- KẾT THÚC BỘ XỬ LÝ MỚI ---
+  // --- THÊM HÀM NÀY ---
+  /// Xử lý khi người dùng thay đổi input sau khi đã có kết quả thành công
+  void _onUserInputChanged(UserInputChanged event, Emitter<WeatherState> emit) {
+    // Lấy state hiện tại
+    final currentState = state;
+    // Chỉ hành động nếu state hiện tại là Success và chưa cho phép tìm kiếm mới
+    if (currentState is WeatherLoadSuccess && !currentState.allowNewSearch) {
+      print('BLoC: User input changed after success. Allowing new search.');
+      // Phát ra lại state Success nhưng với cờ allowNewSearch = true
+      // Dùng copyWith để giữ nguyên các dữ liệu khác
+      emit(currentState.copyWith(allowNewSearch: true));
+    }
+    // Nếu state không phải Success hoặc đã cho phép tìm mới rồi thì không cần làm gì cả
+  }
+// --- KẾT THÚC HÀM MỚI ---
 }
