@@ -34,7 +34,6 @@ class ForecastDisplay extends StatelessWidget {
     for (var item in forecastList) {
       if (item.dtTxt != null) {
         final dateKey = DateTime(item.dtTxt!.year, item.dtTxt!.month, item.dtTxt!.day);
-        // Chỉ lấy các ngày sau ngày hôm nay
         if (dateKey.isAfter(todayDateKey)) {
           if (groupedByDay.containsKey(dateKey)) {
             groupedByDay[dateKey]!.add(item);
@@ -50,7 +49,6 @@ class ForecastDisplay extends StatelessWidget {
     double minTemp = itemsForDay[0].main.tempMin;
     double maxTemp = itemsForDay[0].main.tempMax;
 
-    // Tìm item đại diện (ví dụ: giữa ngày)
     final midDayItem = itemsForDay.firstWhere(
             (item) => item.dtTxt != null && item.dtTxt!.hour >= 11 && item.dtTxt!.hour < 15,
         orElse: () => itemsForDay[itemsForDay.length ~/ 2]);
@@ -59,7 +57,6 @@ class ForecastDisplay extends StatelessWidget {
     final Description? representativeDescEnum = midDayItem.weather.firstOrNull?.description;
     final String? representativeDesc = representativeDescEnum != null ? descriptionValues.reverse[representativeDescEnum] : null;
 
-    // Tính Min/Max chuẩn hơn
     for (var item in itemsForDay) {
       if (item.main.tempMin < minTemp) minTemp = item.main.tempMin;
       if (item.main.tempMax > maxTemp) maxTemp = item.main.tempMax;

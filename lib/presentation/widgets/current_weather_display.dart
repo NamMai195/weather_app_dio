@@ -17,8 +17,9 @@ class CurrentWeatherDisplay extends StatelessWidget {
     final weatherInfo = weatherData.weather.isNotEmpty ? weatherData.weather[0] : null;
     final String? iconString = weatherInfo?.icon;
     final iconUrl = iconString != null
-        ? '${ApiConstants.weatherIconBaseUrl}$iconString${ApiConstants.weatherIconSuffix}' // Dùng hằng số
-        : null;    final description = weatherInfo?.description ?? 'N/A';
+        ? '${ApiConstants.weatherIconBaseUrl}$iconString${ApiConstants.weatherIconSuffix}' 
+        : null;
+    final description = weatherInfo?.description ?? 'N/A';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

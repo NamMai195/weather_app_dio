@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weather_app/locator.dart';
+import 'package:weather_app/presentation/widgets/hourly_forecast_display.dart';
 import '../../core/constants/app_constants.dart';
 import '../bloc/weather_bloc.dart';
 import '../bloc/weather_event.dart';
@@ -43,7 +44,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return BlocProvider(
       create: (context) => locator<WeatherBloc>(),
       child: Scaffold(
-        appBar: AppBar(title: const Text(AppConstants.appTitle)), // Dùng hằng số
+        appBar: AppBar(title: const Text(AppConstants.appTitle)),
           body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: BlocListener<WeatherBloc, WeatherState>(
@@ -229,24 +230,35 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   Widget _buildWeatherContent(BuildContext context, WeatherState state) {
     if (state is WeatherInitial) {
-      // Hiển thị thông báo ban đầu
-      return const Center( child: Text( 'Nhập tên thành phố và nhấn nút để xem thời tiết.', style: TextStyle(fontSize: 16), textAlign: TextAlign.center, ), );
+      return const Center( child: Text( AppConstants.initialMessage, style: TextStyle(fontSize: 16), textAlign: TextAlign.center, ), );
     } else if (state is WeatherLoadInProgress) {
-      // Hiển thị loading
       return const Center(heightFactor: 5, child: CircularProgressIndicator());
     } else if (state is WeatherLoadSuccess) {
-      // Hiển thị kết quả thành công (dùng widget con)
+      // Trả về Column chứa 3 phần chính
       return Column(
         children: [
-          CurrentWeatherDisplay(weatherData: state.weatherData, displayedCityName: state.displayedCityName),
-          const SizedBox(height: 30), const Divider(), const SizedBox(height: 10),
+          // 1. Thời tiết hiện tại
+          CurrentWeatherDisplay(
+            weatherData: state.weatherData,
+            displayedCityName: state.displayedCityName,
+          ),
+          const SizedBox(height: 24), // Khoảng cách giữa các phần
+
+          // 2. Dự báo hàng giờ
+          HourlyForecastDisplay(hourlyForecasts: state.forecastData.list),
+
+          const SizedBox(height: 24), // Khoảng cách
+          const Divider(), 
+          const SizedBox(height: 12),
+
+          // 3. Dự báo 5 ngày
           ForecastDisplay(forecastData: state.forecastData),
         ],
       );
     } else if (state is WeatherLoadFailure) {
-      return const Center( child: Text( 'Nhập tên thành phố và nhấn nút để xem thời tiết.', style: TextStyle(fontSize: 16), textAlign: TextAlign.center, ), ); // Hoặc quay về trạng thái ban đầu
+      // Lỗi đã hiển thị qua Dialog, trả về trạng thái ban đầu
+      return const Center( child: Text( AppConstants.initialMessage, style: TextStyle(fontSize: 16), textAlign: TextAlign.center, ), );
     } else {
-      // State không xác định
       return const SizedBox.shrink();
     }
   }
