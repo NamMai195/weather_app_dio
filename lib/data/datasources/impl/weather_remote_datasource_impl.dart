@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:weather_app/config.dart';
+import 'package:weather_app/core/constants/app_constants.dart';
 import '../weather_remote_datasource.dart';
 
 class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
@@ -42,7 +43,7 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
       print("Fetching weather using city name: $cityName");
     }
 
-    final url = '$weatherBaseUrl/weather';
+    final url = '${ApiConstants.weatherBaseUrl}${ApiConstants.weatherEndpoint}'; // Dùng hằng số
     print('API Request URL: $url');
     print('API Request Params: $queryParameters');
 
@@ -74,7 +75,7 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
 
   @override
   Future<List<dynamic>> getCitySuggestionData(String query, {int limit = 5}) async {
-    final url = '$geocodingBaseUrl/direct';
+    final url = '${ApiConstants.geocodingBaseUrl}${ApiConstants.geocodingDirectEndpoint}'; // Dùng hằng số
     final queryParameters = {
       'q': query,
       'limit': limit,
@@ -137,7 +138,7 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
     }
 
     //endpoint cho du lieu dự báo thời tiết 5 ngày
-    final url ='$weatherBaseUrl/forecast';
+    final url = '${ApiConstants.weatherBaseUrl}${ApiConstants.forecastEndpoint}'; // Dùng hằng số
 
     print('API Request URL: $url');
     print('API Request Params: $queryParameters');

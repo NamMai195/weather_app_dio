@@ -1,9 +1,8 @@
-// lib/presentation/widgets/forecast_display.dart
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import '../../domain/entities/forecast_data.dart'; // Import model ForecastData
+import 'package:weather_app/core/constants/app_constants.dart';
+import '../../domain/entities/forecast_data.dart';
 
-// --- Class DailySummary ---
 class DailySummary extends Equatable {
   final DateTime date;
   final double minTemp;
@@ -93,8 +92,9 @@ class ForecastDisplay extends StatelessWidget {
               final summary = dailySummaries[index];
               final dayOfWeek = ['Th 2','Th 3','Th 4','Th 5','Th 6','Th 7','CN'][summary.date.weekday - 1];
               final dateString = '${summary.date.day.toString().padLeft(2,'0')}/${summary.date.month.toString().padLeft(2,'0')}';
-              final iconUrl = summary.iconCode != null ? 'https://openweathermap.org/img/wn/${summary.iconCode}@2x.png' : null;
-
+              final iconUrl = summary.iconCode != null
+                  ? '${ApiConstants.weatherIconBaseUrl}${summary.iconCode}${ApiConstants.weatherIconSuffix}' // Dùng hằng số
+                  : null;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                 child: Row(

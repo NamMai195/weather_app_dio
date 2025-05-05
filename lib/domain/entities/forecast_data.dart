@@ -235,34 +235,32 @@ class Sys extends Equatable {
   final Pod? pod;
   const Sys({ this.pod });
   factory Sys.fromJson(Map<String, dynamic> json) => Sys(
-    pod: _parseEnumSafe(podValues.map, json["pod"], defaultValue: Pod.N), // Dùng default N
+    pod: _parseEnumSafe(podValues.map, json["pod"], defaultValue: Pod.N),
   );
   Map<String, dynamic> toJson() => { "pod": podValues.reverse[pod] };
   @override List<Object?> get props => [pod];
 }
 
-enum Pod { D, N, UNKNOWN } // Thêm giá trị UNKNOWN
-final podValues = EnumValues({"d": Pod.D, "n": Pod.N}); // Map không cần UNKNOWN
+enum Pod { D, N, UNKNOWN }
+final podValues = EnumValues({"d": Pod.D, "n": Pod.N});
 
 class Weather extends Equatable {
   final int id;
   final MainEnum? main;
   final Description? description;
-  // +++ ĐÃ ĐỔI TÊN +++
-  final WeatherIconEnum? icon; // Sử dụng tên mới
+  final WeatherIconEnum? icon;
 
   const Weather({
     required this.id,
     this.main,
     this.description,
-    this.icon, // Sử dụng tên mới
+    this.icon,
   });
 
   factory Weather.fromJson(Map<String, dynamic> json) => Weather(
     id: json["id"] ?? 0,
     main: _parseEnumSafe(mainEnumValues.map, json["main"], defaultValue: MainEnum.UNKNOWN),
     description: _parseEnumSafe(descriptionValues.map, json["description"], defaultValue: Description.UNKNOWN),
-    // +++ SỬ DỤNG ENUM/MAP ĐÃ ĐỔI TÊN +++
     icon: _parseEnumSafe(weatherIconEnumValues.map, json["icon"], defaultValue: WeatherIconEnum.UNKNOWN),
   );
 
@@ -270,7 +268,6 @@ class Weather extends Equatable {
     "id": id,
     "main": mainEnumValues.reverse[main],
     "description": descriptionValues.reverse[description],
-    // +++ SỬ DỤNG ENUM/MAP ĐÃ ĐỔI TÊN +++
     "icon": weatherIconEnumValues.reverse[icon],
   };
 
@@ -278,7 +275,6 @@ class Weather extends Equatable {
   List<Object?> get props => [id, main, description, icon];
 }
 
-// --- Định nghĩa các Enum và EnumValues ---
 enum Description { MA_NH, MY_CM, MY_EN_U_M, MY_RI_RC, MY_THA, UNKNOWN }
 final descriptionValues = EnumValues({
   "mưa nhẹ": Description.MA_NH, "mây cụm": Description.MY_CM,

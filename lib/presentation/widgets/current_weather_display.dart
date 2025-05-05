@@ -37,7 +37,7 @@ class CurrentWeatherDisplay extends StatelessWidget {
             },
           )
         else
-          const SizedBox(height: 100, width: 100), // Placeholder nếu không có icon
+          const SizedBox(height: 100, width: 100),
         Text(
           description,
           style: const TextStyle(fontSize: 18, fontStyle: FontStyle.italic),

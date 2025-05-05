@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weather_app/locator.dart';
+import '../../core/constants/app_constants.dart';
 import '../bloc/weather_bloc.dart';
 import '../bloc/weather_event.dart';
 import '../bloc/weather_state.dart';
@@ -42,8 +43,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
     return BlocProvider(
       create: (context) => locator<WeatherBloc>(),
       child: Scaffold(
-        appBar: AppBar(title: const Text('Weather App')),
-        body: GestureDetector(
+        appBar: AppBar(title: const Text(AppConstants.appTitle)), // Dùng hằng số
+          body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: BlocListener<WeatherBloc, WeatherState>(
   listener: (context, state) {
@@ -52,11 +53,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: const Text('Lỗi'),
-          content: Text(state.message), // Hiển thị message lỗi thân thiện từ state
+          content: Text(state.message),
           actions: <Widget>[
             TextButton(
               child: const Text('OK'),
-              onPressed: () => Navigator.of(dialogContext).pop(), // Đóng Dialog
+              onPressed: () => Navigator.of(dialogContext).pop(),
             ),
           ],
         ),
@@ -106,7 +107,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                 if(mounted) { setState(() { _isLoadingSuggestions = true; }); }
                               });
                             }
-                            _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+                            _debounceTimer = Timer(Duration(milliseconds: AppConstants.debounceDurationMs), () {
                               if (mounted && _cityController.text.trim() == query.trim()) {
                                 _fetchSuggestions(query);
                               } else if (mounted && _isLoadingSuggestions) {
@@ -243,9 +244,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
         ],
       );
     } else if (state is WeatherLoadFailure) {
-      // Khi lỗi, không hiển thị gì ở đây cả (hoặc hiển thị lại thông báo ban đầu)
-      // Vì lỗi đã được hiển thị bằng Dialog thông qua BlocListener
-      // return const SizedBox.shrink(); // Trả về widget trống
       return const Center( child: Text( 'Nhập tên thành phố và nhấn nút để xem thời tiết.', style: TextStyle(fontSize: 16), textAlign: TextAlign.center, ), ); // Hoặc quay về trạng thái ban đầu
     } else {
       // State không xác định
