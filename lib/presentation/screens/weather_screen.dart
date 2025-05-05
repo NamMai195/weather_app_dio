@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:weather_app/domain/entities/forecast_data.dart';
 import 'package:weather_app/locator.dart';
 import 'package:weather_app/presentation/widgets/hourly_forecast_display.dart';
 import '../../core/constants/app_constants.dart';
@@ -26,6 +27,18 @@ class _WeatherScreenState extends State<WeatherScreen> {
   Timer? _debounceTimer;
   List<LocationSuggestion> _currentSuggestions = [];
   bool _isLoadingSuggestions = false;
+  DateTime? _selectedForecastDate;
+  void _handleDaySelected(DateTime selectedDate) {
+    setState(() {
+      if (_selectedForecastDate == selectedDate) {
+        _selectedForecastDate = null;
+      } else {
+        _selectedForecastDate = selectedDate;
+      }
+      print('Selected forecast date updated: $_selectedForecastDate');
+    });
+  }
+
 
   @override
   void initState() {
@@ -234,25 +247,50 @@ class _WeatherScreenState extends State<WeatherScreen> {
     } else if (state is WeatherLoadInProgress) {
       return const Center(heightFactor: 5, child: CircularProgressIndicator());
     } else if (state is WeatherLoadSuccess) {
-      // Trả về Column chứa 3 phần chính
+      List<ListElement> hourlyListToShow;
+      String hourlyTitle = 'Dự báo hàng giờ';
+
+      if (_selectedForecastDate != null) {
+        hourlyListToShow = state.forecastData.list.where((item) {
+          return item.dtTxt != null &&
+              item.dtTxt!.year == _selectedForecastDate!.year &&
+              item.dtTxt!.month == _selectedForecastDate!.month &&
+              item.dtTxt!.day == _selectedForecastDate!.day;
+        }).toList();
+        final formattedDate = '${_selectedForecastDate!.day.toString().padLeft(2,'0')}/${_selectedForecastDate!.month.toString().padLeft(2,'0')}';
+        hourlyTitle = 'Dự báo giờ cho ngày $formattedDate';
+        print('Showing hourly forecast for selected date: $_selectedForecastDate (${hourlyListToShow.length} items)');
+      } else {
+        hourlyListToShow = state.forecastData.list.take(8).toList();
+        hourlyTitle = 'Dự báo 24 giờ tới';
+        print('Showing next 24h hourly forecast (${hourlyListToShow.length} items)');
+      }
+
       return Column(
         children: [
-          // 1. Thời tiết hiện tại
+          // 1. Thời tiết hiện tại (Dùng widget con)
           CurrentWeatherDisplay(
             weatherData: state.weatherData,
             displayedCityName: state.displayedCityName,
           ),
-          const SizedBox(height: 24), // Khoảng cách giữa các phần
+          const SizedBox(height: 24), // Tăng khoảng cách
 
-          // 2. Dự báo hàng giờ
-          HourlyForecastDisplay(hourlyForecasts: state.forecastData.list),
+          // 2. Dự báo hàng giờ (Dùng widget con và list đã lọc)
+          HourlyForecastDisplay(
+            hourlyForecasts: hourlyListToShow,
+            title: hourlyTitle, // Truyền tiêu đề động vào
+          ),
 
-          const SizedBox(height: 24), // Khoảng cách
-          const Divider(), 
+          const SizedBox(height: 24), // Tăng khoảng cách
+          const Divider(),
           const SizedBox(height: 12),
 
-          // 3. Dự báo 5 ngày
-          ForecastDisplay(forecastData: state.forecastData),
+          // 3. Dự báo 5 ngày (Dùng widget con và truyền callback)
+          ForecastDisplay(
+            forecastData: state.forecastData,
+            onDaySelected: _handleDaySelected, // Truyền hàm xử lý
+            selectedDate: _selectedForecastDate, // Truyền ngày đang chọn để highlight (sẽ làm sau)
+          ),
         ],
       );
     } else if (state is WeatherLoadFailure) {
@@ -262,6 +300,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
       return const SizedBox.shrink();
     }
   }
+
 
   Future<void> _fetchSuggestions(String query) async {
     if (mounted && !_isLoadingSuggestions) { setState(() { _isLoadingSuggestions = true; }); }
