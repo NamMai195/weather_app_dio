@@ -24,46 +24,63 @@ class ForecastDisplay extends StatelessWidget {
     super.key,
     required this.forecastData,
   });
-
-  List<DailySummary> _processForecastData(ForecastData data) {
-    final List<DailySummary> dailySummaries = [];
-    if (data.list.isEmpty) return dailySummaries;
+  Map<DateTime, List<ListElement>> _groupForecastsByDay(List<ListElement> forecastList) {
     final Map<DateTime, List<ListElement>> groupedByDay = {};
+    if (forecastList.isEmpty) return groupedByDay;
+
     final today = DateTime.now();
     final todayDateKey = DateTime(today.year, today.month, today.day);
 
-    for (var item in data.list) {
+    for (var item in forecastList) {
       if (item.dtTxt != null) {
         final dateKey = DateTime(item.dtTxt!.year, item.dtTxt!.month, item.dtTxt!.day);
+        // Chỉ lấy các ngày sau ngày hôm nay
         if (dateKey.isAfter(todayDateKey)) {
-          if (groupedByDay.containsKey(dateKey)) { groupedByDay[dateKey]!.add(item); }
-          else { groupedByDay[dateKey] = [item]; }
+          if (groupedByDay.containsKey(dateKey)) {
+            groupedByDay[dateKey]!.add(item);
+          } else {
+            groupedByDay[dateKey] = [item];
+          }
         }
       }
     }
-    groupedByDay.forEach((date, itemsForDay) {
-      if (itemsForDay.isNotEmpty) {
-        double minTemp = itemsForDay[0].main.tempMin;
-        double maxTemp = itemsForDay[0].main.tempMax;
-        final midDayItem = itemsForDay.firstWhere(
-                (item) => item.dtTxt != null && item.dtTxt!.hour >= 11 && item.dtTxt!.hour < 15,
-            orElse: () => itemsForDay[itemsForDay.length ~/ 2]);
-        final WeatherIconEnum? representativeIconEnum = midDayItem.weather.firstOrNull?.icon;
-        final String? representativeIconCode = representativeIconEnum != null ? weatherIconEnumValues.reverse[representativeIconEnum] : null;
-        final Description? representativeDescEnum = midDayItem.weather.firstOrNull?.description;
-        final String? representativeDesc = representativeDescEnum != null ? descriptionValues.reverse[representativeDescEnum] : null;
+    return groupedByDay;
+  }
+  DailySummary _calculateDailySummary(DateTime date, List<ListElement> itemsForDay) {
+    double minTemp = itemsForDay[0].main.tempMin;
+    double maxTemp = itemsForDay[0].main.tempMax;
 
-        for (var item in itemsForDay) {
-          if (item.main.tempMin < minTemp) minTemp = item.main.tempMin;
-          if (item.main.tempMax > maxTemp) maxTemp = item.main.tempMax;
-        }
-        dailySummaries.add(DailySummary(
-          date: date, minTemp: minTemp, maxTemp: maxTemp,
-          iconCode: representativeIconCode, description: representativeDesc,
-        ));
-      }
-    });
+    // Tìm item đại diện (ví dụ: giữa ngày)
+    final midDayItem = itemsForDay.firstWhere(
+            (item) => item.dtTxt != null && item.dtTxt!.hour >= 11 && item.dtTxt!.hour < 15,
+        orElse: () => itemsForDay[itemsForDay.length ~/ 2]);
+    final WeatherIconEnum? representativeIconEnum = midDayItem.weather.firstOrNull?.icon;
+    final String? representativeIconCode = representativeIconEnum != null ? weatherIconEnumValues.reverse[representativeIconEnum] : null;
+    final Description? representativeDescEnum = midDayItem.weather.firstOrNull?.description;
+    final String? representativeDesc = representativeDescEnum != null ? descriptionValues.reverse[representativeDescEnum] : null;
+
+    // Tính Min/Max chuẩn hơn
+    for (var item in itemsForDay) {
+      if (item.main.tempMin < minTemp) minTemp = item.main.tempMin;
+      if (item.main.tempMax > maxTemp) maxTemp = item.main.tempMax;
+    }
+
+    return DailySummary(
+      date: date, minTemp: minTemp, maxTemp: maxTemp,
+      iconCode: representativeIconCode, description: representativeDesc,
+    );
+  }
+  List<DailySummary> _processForecastData(ForecastData data) {
+    if (data.list.isEmpty) return [];
+
+    final groupedData = _groupForecastsByDay(data.list);
+
+    final dailySummaries = groupedData.entries.map((entry) {
+      return _calculateDailySummary(entry.key, entry.value);
+    }).toList();
+
     dailySummaries.sort((a, b) => a.date.compareTo(b.date));
+
     return dailySummaries;
   }
 

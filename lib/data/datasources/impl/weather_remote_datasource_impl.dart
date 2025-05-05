@@ -6,8 +6,6 @@ import '../weather_remote_datasource.dart';
 class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
   final Dio dio;
   final String apiKey = openWeatherApiKey;
-  final String weatherBaseUrl = 'https://api.openweathermap.org/data/2.5';
-  final String geocodingBaseUrl = 'https://api.openweathermap.org/geo/1.0';
 
 
   WeatherRemoteDataSourceImpl({required this.dio});

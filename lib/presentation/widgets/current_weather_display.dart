@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:weather_app/core/constants/app_constants.dart';
 import '../../domain/entities/weather.dart';
 
 class CurrentWeatherDisplay extends StatelessWidget {
@@ -15,9 +16,9 @@ class CurrentWeatherDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     final weatherInfo = weatherData.weather.isNotEmpty ? weatherData.weather[0] : null;
     final String? iconString = weatherInfo?.icon;
-    final iconUrl = iconString != null ? 'https://openweathermap.org/img/wn/$iconString@2x.png' : null;
-    final description = weatherInfo?.description ?? 'N/A';
-
+    final iconUrl = iconString != null
+        ? '${ApiConstants.weatherIconBaseUrl}$iconString${ApiConstants.weatherIconSuffix}' // Dùng hằng số
+        : null;    final description = weatherInfo?.description ?? 'N/A';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
