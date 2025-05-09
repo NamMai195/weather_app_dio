@@ -1,14 +1,25 @@
 import 'package:dio/dio.dart';
 import 'package:weather_app/config.dart';
 import 'package:weather_app/core/constants/app_constants.dart';
+import 'package:weather_app/core/services/network_service.dart';
+import 'package:weather_app/locator.dart';
 import '../weather_remote_datasource.dart';
 
 class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
   final Dio dio;
+  final NetworkService _networkService;
   final String apiKey = openWeatherApiKey;
 
+  WeatherRemoteDataSourceImpl({
+    required this.dio,
+    NetworkService? networkService,
+  }) : _networkService = networkService ?? locator<NetworkService>();
 
-  WeatherRemoteDataSourceImpl({required this.dio});
+  Future<void> _checkConnectivity() async {
+    if (!await _networkService.isConnected()) {
+      throw Exception('Không có kết nối mạng. Vui lòng kiểm tra lại kết nối internet của bạn.');
+    }
+  }
 
   @override
   Future<Map<String, dynamic>> getCurrentWeather({
@@ -16,6 +27,8 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
     double? lat,
     double? lon,
   }) async {
+    await _checkConnectivity();
+    
     // Input Validation
     final bool hasCityName = cityName != null && cityName.isNotEmpty;
     final bool hasCoordinates = lat != null && lon != null;
@@ -73,6 +86,8 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
 
   @override
   Future<List<dynamic>> getCitySuggestionData(String query, {int limit = 5}) async {
+    await _checkConnectivity();
+    
     final url = '${ApiConstants.geocodingBaseUrl}${ApiConstants.geocodingDirectEndpoint}'; // Dùng hằng số
     final queryParameters = {
       'q': query,
@@ -113,6 +128,8 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
     String? cityName,
     double? lat,
     double? lon}) async{
+    await _checkConnectivity();
+    
     final bool hasCityName = cityName !=null && cityName.isNotEmpty;
     final bool hasCoordinates = lat != null && lon != null;
 

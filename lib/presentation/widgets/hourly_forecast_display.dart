@@ -3,47 +3,94 @@ import '../../core/constants/app_constants.dart';
 import '../../domain/entities/forecast_data.dart';
 
 class HourlyForecastDisplay extends StatelessWidget {
-  final List<ListElement> hourlyForecasts;
-  final String title;
+  final ForecastData forecastData;
+  final DateTime? selectedDate;
 
   const HourlyForecastDisplay({
     super.key,
-    required this.hourlyForecasts,
-    required this.title,
+    required this.forecastData,
+    this.selectedDate,
   });
+
+  List<ListElement> _getHourlyForecasts() {
+    if (selectedDate != null) {
+      return forecastData.list.where((item) {
+        return item.dtTxt != null &&
+            item.dtTxt!.year == selectedDate!.year &&
+            item.dtTxt!.month == selectedDate!.month &&
+            item.dtTxt!.day == selectedDate!.day;
+      }).toList();
+    } else {
+      return forecastData.list.take(8).toList();
+    }
+  }
+
+  String _getTitle() {
+    if (selectedDate != null) {
+      final formattedDate = '${selectedDate!.day.toString().padLeft(2,'0')}/${selectedDate!.month.toString().padLeft(2,'0')}';
+      return 'Dự báo giờ cho ngày $formattedDate';
+    } else {
+      return 'Dự báo 24 giờ tới';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final displayList = hourlyForecasts;
+    final displayList = _getHourlyForecasts();
 
     if (displayList.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16.0),
-        child: Center(child: Text("Không có dữ liệu dự báo theo giờ cho ngày này.")),
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Text(
+            "Không có dữ liệu dự báo theo giờ cho ngày này.",
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
       );
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(15.0),
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          Text(
+            _getTitle(),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
-          Container(
-            height: 130,
+          const SizedBox(height: 15),
+          SizedBox(
+            height: 150,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
               itemCount: displayList.length,
               itemBuilder: (context, index) {
                 final item = displayList[index];
@@ -52,18 +99,52 @@ class HourlyForecastDisplay extends StatelessWidget {
                 final itemWeather = item.weather.firstOrNull;
                 final WeatherIconEnum? itemIconEnum = itemWeather?.icon;
                 final String? itemIconCode = itemIconEnum != null ? weatherIconEnumValues.reverse[itemIconEnum] : null;
-                final itemIconUrl = itemIconCode != null ? '${ApiConstants.weatherIconBaseUrl}$itemIconCode${ApiConstants.weatherIconSuffix}' : null;
+                final itemIconUrl = itemIconCode != null
+                    ? '${ApiConstants.weatherIconBaseUrl}$itemIconCode${ApiConstants.weatherIconSuffix}'
+                    : null;
 
                 return Container(
-                  width: 70,
-                  margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                  width: 80,
+                  margin: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Text( itemTime != null ? '${itemTime.hour.toString().padLeft(2, '0')}' : '--', style: const TextStyle(fontWeight: FontWeight.bold),),
-                        if (itemIconUrl != null) Image.network(itemIconUrl, width: 40, height: 40, errorBuilder: (c, e, s) => const SizedBox(width: 40)) else const SizedBox(width: 40, height: 40),
-                        Text('${itemTemp.toStringAsFixed(0)}°'),
-                      ]
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Text(
+                        itemTime != null ? '${itemTime.hour.toString().padLeft(2, '0')}:00' : '--',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (itemIconUrl != null)
+                        Image.network(
+                          itemIconUrl,
+                          width: 50,
+                          height: 50,
+                          errorBuilder: (c, e, s) => const SizedBox(width: 50),
+                        )
+                      else
+                        const SizedBox(width: 50, height: 50),
+                      Text(
+                        '${itemTemp.toStringAsFixed(0)}°',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        itemWeather?.description?.toString() ?? '',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 12,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 );
               },

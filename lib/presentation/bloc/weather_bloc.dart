@@ -15,6 +15,21 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
     on<UserInputChanged>(_onUserInputChanged);
   }
 
+  String _getErrorMessage(String errorString) {
+    if (errorString.contains('không có kết nối mạng')) {
+      return 'Không có kết nối mạng. Vui lòng kiểm tra lại kết nối internet của bạn.';
+    } else if (errorString.contains('404') || errorString.contains('không tìm thấy thành phố')) {
+      return 'Không tìm thấy thành phố.';
+    } else if (errorString.contains('dioexception') || errorString.contains('socketexception') || 
+               errorString.contains('connection errored') || errorString.contains('failed host lookup')) {
+      return 'Lỗi kết nối mạng hoặc máy chủ. Vui lòng thử lại.';
+    } else if (errorString.contains('401') || errorString.contains('invalid api key')) {
+      return 'API key không hợp lệ hoặc hết hạn.';
+    } else {
+      return 'Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.';
+    }
+  }
+
   Future<void> _onWeatherRequested(
       WeatherRequested event,
       Emitter<WeatherState> emit,
@@ -30,23 +45,12 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
       final forecastData = await weatherRepository.getForecastData(lat: lat, lon: lon);
 
       print('BLoC: Fetched current weather and forecast successfully for city: $city');
-      emit(WeatherLoadSuccess(weatherData, forecastData,event.city,allowNewSearch: false));
+      emit(WeatherLoadSuccess(weatherData, forecastData, event.city, allowNewSearch: false));
 
     } catch (e) {
       print('BLoC: Error in _onWeatherRequested: ${e.toString()}');
-      String displayMessage;
       final errorString = e.toString().toLowerCase();
-
-      if (errorString.contains('404') || errorString.contains('không tìm thấy thành phố')) {
-        displayMessage = 'Không tìm thấy thành phố "${event.city}".';
-      } else if (errorString.contains('dioexception') || errorString.contains('socketexception') || errorString.contains('connection errored') || errorString.contains('failed host lookup')) {
-        displayMessage = 'Lỗi kết nối mạng hoặc máy chủ. Vui lòng thử lại.';
-      } else if (errorString.contains('401') || errorString.contains('invalid api key')) {
-        displayMessage = 'API key không hợp lệ hoặc hết hạn.';
-      }
-      else {
-        displayMessage = 'Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.';
-      }
+      final displayMessage = _getErrorMessage(errorString);
       emit(WeatherLoadFailure(displayMessage));
     }
   }
@@ -70,7 +74,7 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
         final forecastData = results[1] as ForecastData;
 
         print('BLoC: Fetched current weather and forecast successfully by coords.');
-        emit(WeatherLoadSuccess(weatherData, forecastData, event.selectedName,allowNewSearch: false));
+        emit(WeatherLoadSuccess(weatherData, forecastData, event.selectedName, allowNewSearch: false));
       } else {
         print('BLoC: Error processing results from Future.wait');
         throw Exception('Lỗi xử lý dữ liệu trả về từ API.');
@@ -78,22 +82,14 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
 
     } catch (e) {
       print('BLoC: Error in _onWeatherRequestedByCoords: ${e.toString()}');
-      String displayMessage;
       final errorString = e.toString().toLowerCase();
-
-      if (errorString.contains('dioexception') || errorString.contains('socketexception') || errorString.contains('connection errored') || errorString.contains('failed host lookup')) {
-        displayMessage = 'Lỗi kết nối mạng hoặc máy chủ. Vui lòng thử lại.';
-      } else if (errorString.contains('401') || errorString.contains('invalid api key')) {
-        displayMessage = 'API key không hợp lệ hoặc hết hạn.';
-      }
-      else {
-        displayMessage = 'Đã có lỗi không mong muốn xảy ra khi tìm theo tọa độ.';
-      }
+      final displayMessage = _getErrorMessage(errorString);
       emit(WeatherLoadFailure(displayMessage));
     }
   }
   /// Xử lý khi người dùng thay đổi input sau khi đã có kết quả thành công
-  void _onUserInputChanged(UserInputChanged event, Emitter<WeatherState> emit) {final currentState = state;
+  void _onUserInputChanged(UserInputChanged event, Emitter<WeatherState> emit) {
+    final currentState = state;
     if (currentState is WeatherLoadSuccess && !currentState.allowNewSearch) {
       print('BLoC: User input changed after success. Allowing new search.');
       emit(currentState.copyWith(allowNewSearch: true));

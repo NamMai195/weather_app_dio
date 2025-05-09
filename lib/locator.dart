@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:weather_app/core/services/network_service.dart';
 import 'package:weather_app/data/datasources/impl/weather_remote_datasource_impl.dart';
 import 'package:weather_app/data/datasources/weather_remote_datasource.dart';
 import 'package:weather_app/data/repositories/weather_repository_impl.dart';
@@ -15,6 +16,11 @@ void setupLocator() {
 
   // ---Dang ky Dep
 
+  // NetworkService
+  locator.registerLazySingleton<NetworkService>(() {
+    print('Creating NetworkService instance');
+    return NetworkService();
+  });
 
   //Dio
   //Lazy Singleton: Tạo instance khi cần và tái sử dụng nó

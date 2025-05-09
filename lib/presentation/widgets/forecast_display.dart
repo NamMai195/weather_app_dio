@@ -18,7 +18,6 @@ class DailySummary extends Equatable {
   @override List<Object?> get props => [date, minTemp, maxTemp, iconCode, description];
 }
 
-
 class ForecastDisplay extends StatelessWidget {
   final ForecastData forecastData;
   final Function(DateTime)? onDaySelected;
@@ -66,15 +65,32 @@ class ForecastDisplay extends StatelessWidget {
   DailySummary _calculateDailySummary(DateTime date, List<ListElement> itemsForDay) {
     double minTemp = itemsForDay[0].main.tempMin;
     double maxTemp = itemsForDay[0].main.tempMax;
-    final midDayItem = itemsForDay.firstWhere( (item) => item.dtTxt != null && item.dtTxt!.hour >= 11 && item.dtTxt!.hour < 15, orElse: () => itemsForDay[itemsForDay.length ~/ 2]);
+    final midDayItem = itemsForDay.firstWhere(
+      (item) => item.dtTxt != null && item.dtTxt!.hour >= 11 && item.dtTxt!.hour < 15,
+      orElse: () => itemsForDay[itemsForDay.length ~/ 2]
+    );
     final WeatherIconEnum? representativeIconEnum = midDayItem.weather.firstOrNull?.icon;
-    final String? representativeIconCode = (representativeIconEnum != null && representativeIconEnum != WeatherIconEnum.UNKNOWN) ? weatherIconEnumValues.reverse[representativeIconEnum] : null;
+    final String? representativeIconCode = (representativeIconEnum != null && representativeIconEnum != WeatherIconEnum.UNKNOWN)
+        ? weatherIconEnumValues.reverse[representativeIconEnum]
+        : null;
     final Description? representativeDescEnum = midDayItem.weather.firstOrNull?.description;
-    final String? representativeDesc = (representativeDescEnum != null && representativeDescEnum != Description.UNKNOWN) ? descriptionValues.reverse[representativeDescEnum] : null;
-    for (var item in itemsForDay) { if (item.main.tempMin < minTemp) minTemp = item.main.tempMin; if (item.main.tempMax > maxTemp) maxTemp = item.main.tempMax; }
-    return DailySummary( date: date, minTemp: minTemp, maxTemp: maxTemp, iconCode: representativeIconCode, description: representativeDesc, );
+    final String? representativeDesc = (representativeDescEnum != null && representativeDescEnum != Description.UNKNOWN)
+        ? descriptionValues.reverse[representativeDescEnum]
+        : null;
+    
+    for (var item in itemsForDay) {
+      if (item.main.tempMin < minTemp) minTemp = item.main.tempMin;
+      if (item.main.tempMax > maxTemp) maxTemp = item.main.tempMax;
+    }
+    
+    return DailySummary(
+      date: date,
+      minTemp: minTemp,
+      maxTemp: maxTemp,
+      iconCode: representativeIconCode,
+      description: representativeDesc,
+    );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -83,17 +99,40 @@ class ForecastDisplay extends StatelessWidget {
     final todayDateKey = DateTime(today.year, today.month, today.day);
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(15.0),
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text( AppConstants.forecastTitle, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold) ),
-          const SizedBox(height: 10),
+          const Text(
+            AppConstants.forecastTitle,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 15),
           if (dailySummaries.isEmpty)
-            const Padding( padding: EdgeInsets.symmetric(vertical: 20.0), child: Center(child: Text(AppConstants.noForecastData)))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20.0),
+                child: Text(
+                  AppConstants.noForecastData,
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+            )
           else
             ListView.builder(
               shrinkWrap: true,
@@ -109,24 +148,82 @@ class ForecastDisplay extends StatelessWidget {
                   displayDay = ['Th 2','Th 3','Th 4','Th 5','Th 6','Th 7','CN'][summary.date.weekday - 1];
                 }
                 final dateString = '${summary.date.day.toString().padLeft(2,'0')}/${summary.date.month.toString().padLeft(2,'0')}';
-                final iconUrl = summary.iconCode != null ? '${ApiConstants.weatherIconBaseUrl}${summary.iconCode}${ApiConstants.weatherIconSuffix}' : null;
+                final iconUrl = summary.iconCode != null
+                    ? '${ApiConstants.weatherIconBaseUrl}${summary.iconCode}${ApiConstants.weatherIconSuffix}'
+                    : null;
 
-                return InkWell(
-                  onTap: () { onDaySelected?.call(summary.date); },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-                    margin: const EdgeInsets.symmetric(vertical: 2.0),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5) : null,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        SizedBox(width: 65, child: Column(children: [ Text(displayDay, style: const TextStyle(fontWeight: FontWeight.bold)), Text(dateString, style: const TextStyle(color: Colors.grey)) ])),
-                        if (iconUrl != null) Image.network(iconUrl, width: 40, height: 40, errorBuilder: (c, e, s) => const SizedBox(width: 40)) else const SizedBox(width: 40, height: 40),
-                        Row( children: [ Text('${summary.maxTemp.toStringAsFixed(0)}°', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(width: 8), Text('${summary.minTemp.toStringAsFixed(0)}°', style: const TextStyle(fontSize: 16, color: Colors.grey)), ] ),
-                      ],
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => onDaySelected?.call(summary.date),
+                      borderRadius: BorderRadius.circular(15),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SizedBox(
+                              width: 80,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    displayDay,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Text(
+                                    dateString,
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.7),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (iconUrl != null)
+                              Image.network(
+                                iconUrl,
+                                width: 40,
+                                height: 40,
+                                errorBuilder: (c, e, s) => const SizedBox(width: 40),
+                              )
+                            else
+                              const SizedBox(width: 40, height: 40),
+                            Row(
+                              children: [
+                                Text(
+                                  '${summary.maxTemp.toStringAsFixed(0)}°',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '${summary.minTemp.toStringAsFixed(0)}°',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 );
